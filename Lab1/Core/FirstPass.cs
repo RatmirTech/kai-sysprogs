@@ -22,7 +22,7 @@ public static class FirstPass
             {
                 if (i < lines.Count - 1)
                     throw AsmException.AtSource(lines[i + 1].Number, "после директивы END не должно быть строк");
-                return new FirstPassResult(name, start, address - start, ReadEnd(line, start, rows), rows, symbols);
+                return new FirstPassResult(name, start, address - start, ReadEnd(line, start, rows), rows, symbols, opCodes);
             }
 
             if (line.Label is not null)
@@ -125,8 +125,6 @@ public static class FirstPass
             default:
                 if (operands.Length != 1)
                     throw AsmException.AtSource(line.Number, $"у команды {op.Name} должен быть ровно один операнд - метка");
-                if (!Rules.IsName(operands[0]) || Rules.IsRegister(operands[0]))
-                    throw AsmException.AtSource(line.Number, $"операнд «{operands[0]}» команды {op.Name} должен быть меткой");
                 break;
         }
     }

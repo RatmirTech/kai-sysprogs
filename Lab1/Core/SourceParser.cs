@@ -40,10 +40,6 @@ public static class SourceParser
         if (operands.Count > 2)
             throw Fail(operands[2].Position, $"у {command} {operands.Count} операнда, допускается не более 2");
 
-        foreach (var (operand, position) in operands)
-            if (IsReserved(operand))
-                throw Fail(position, $"{operand} - зарезервированное слово, его нельзя использовать как операнд");
-
         return new SourceLine(number, label, command, [.. operands.Select(o => o.Text)]);
     }
 

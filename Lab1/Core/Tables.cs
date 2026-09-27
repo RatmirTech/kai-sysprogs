@@ -10,4 +10,5 @@ public sealed record FirstPassResult(
     int Length,
     int Entry,
     IReadOnlyList<SupportRow> Rows,
-    IReadOnlyList<Symbol> Symbols);
+    IReadOnlyList<Symbol> Symbols,
+    OpCodeTable OpCodes);
