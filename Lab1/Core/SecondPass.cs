@@ -1,0 +1,61 @@
+namespace Core;
+
+public static class SecondPass
+{
+    public static IReadOnlyList<string> Run(FirstPassResult program)
+    {
+        var symbols = program.Symbols.ToDictionary(s => s.Name);
+        var records = new List<string> { $"H {program.Name} {program.Start:X6} {program.Length:X6}" };
+
+        foreach (var row in program.Rows)
+        {
+            var code = Code(row, symbols);
+            records.Add(code.Length == 0 ? $"T {row.Address:X6} {row.Size:X2}" : $"T {row.Address:X6} {row.Size:X2} {code}");
+        }
+
+        records.Add($"E {program.Entry:X6}");
+        return records;
+    }
+
+    static string Code(SupportRow row, Dictionary<string, Symbol> symbols)
+    {
+        if (row.OpCode is { } op)
+            return row.Code + Operands(row, op, symbols);
+
+        var operand = row.Operands[0];
+        return row.Code switch
+        {
+            "WORD" => operand == "?" ? "" : int.Parse(operand).ToString("X6"),
+            "BYTE" => ByteOperand.Code(operand),
+            _ => "",
+        };
+    }
+
+    static string Operands(SupportRow row, OpCode op, Dictionary<string, Symbol> symbols)
+    {
+        var operands = row.Operands;
+
+        return op.Length switch
+        {
+            1 => "",
+            2 when operands.Length == 2 => $"{Rules.RegisterNumber(operands[0]):X}{Rules.RegisterNumber(operands[1]):X}",
+            2 => int.Parse(operands[0]).ToString("X2"),
+            _ => Address(row, op, symbols),
+        };
+    }
+
+    static string Address(SupportRow row, OpCode op, Dictionary<string, Symbol> symbols)
+    {
+        var name = row.Operands[0];
+        if (!symbols.TryGetValue(name, out var symbol))
+            throw AsmException.AtSource(row.Line, $"метка {name} не объявлена");
+
+        if (op.Length == 4)
+            return symbol.Address.ToString("X6");
+
+        if (symbol.Address > 0xFFFF)
+            throw AsmException.AtSource(row.Line, $"адрес метки {name} ({symbol.Address:X6}) не помещается в 2 байта команды {op.Name}");
+
+        return symbol.Address.ToString("X4");
+    }
+}
