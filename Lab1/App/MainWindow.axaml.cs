@@ -1,3 +1,4 @@
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Core;
@@ -13,12 +14,41 @@ public partial class MainWindow : Window
         InitializeComponent();
         SourceHint.Text = Layout.SourceHint;
         OpCodesHint.Text = Layout.OpCodesHint;
-        SourceBox.Text = Samples.Source;
-        OpCodesBox.Text = Samples.OpCodes;
-        SourceBox.TextChanged += (_, _) => Reset();
+        SourceBox.TextChanged += (_, _) => OnSourceChanged();
         OpCodesBox.TextChanged += (_, _) => Reset();
+        AddressBox.TextChanged += (_, _) => OnAddressChanged();
+        ExamplesBox.ItemsSource = Samples.All.Select(s => s.Title).ToList();
+        ExamplesBox.SelectionChanged += (_, _) => LoadSample();
+        ExamplesBox.SelectedIndex = 0;
         TrackCaret(SourceBox, SourceCaret);
         TrackCaret(OpCodesBox, OpCodesCaret);
+    }
+
+    void LoadSample()
+    {
+        if (ExamplesBox.SelectedIndex < 0)
+            return;
+
+        var sample = Samples.All[ExamplesBox.SelectedIndex];
+        OpCodesBox.Text = sample.OpCodes;
+        SourceBox.Text = sample.Source;
+    }
+
+    void OnSourceChanged()
+    {
+        Reset();
+        if (AddressBox.IsFocused)
+            return;
+
+        var address = LoadAddress.Read(SourceBox.Text ?? "");
+        AddressBox.Text = address ?? "";
+        AddressBox.IsEnabled = address is not null;
+    }
+
+    void OnAddressChanged()
+    {
+        if (AddressBox.IsFocused)
+            SourceBox.Text = LoadAddress.Write(SourceBox.Text ?? "", AddressBox.Text ?? "");
     }
 
     static void TrackCaret(TextBox box, TextBlock caret)

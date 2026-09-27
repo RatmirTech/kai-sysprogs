@@ -3,7 +3,7 @@ namespace Core;
 public static class Printer
 {
     public static string SupportTable(FirstPassResult program) =>
-        Table([["Адрес", "Команда", "Биты 1-го байта", "Код", "Метка"], .. program.Rows.Select(SupportRow)]);
+        Table([["Адрес", "Команда", "Биты", "Код", "Метка"], .. program.Rows.Select(SupportRow)]);
 
     public static string Symbols(FirstPassResult program) =>
         Table([["Метка", "Адрес"], .. program.Symbols.Select(s => new[] { s.Name, Rules.Address(s.Address) })]);

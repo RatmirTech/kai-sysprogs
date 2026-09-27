@@ -35,7 +35,7 @@
 
     <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*,*" Margin="10">
 
-        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,2*,Auto,Auto,*" Margin="0 0 10 0">
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,2*,Auto,Auto,*,Auto" Margin="0 0 10 0">
             <DockPanel Grid.Row="0">
                 <TextBlock DockPanel.Dock="Right" Name="SourceCaret" Classes="caret" />
                 <TextBlock Text="Исходный текст" />
@@ -48,6 +48,10 @@
             </DockPanel>
             <TextBlock Grid.Row="4" Name="OpCodesHint" Classes="hint" />
             <TextBox Grid.Row="5" Name="OpCodesBox" />
+            <DockPanel Grid.Row="6" Margin="0 8 0 0">
+                <TextBlock DockPanel.Dock="Left" Text="Адрес загрузки" VerticalAlignment="Center" Margin="0 0 10 0" />
+                <TextBox Name="AddressBox" AcceptsReturn="False" />
+            </DockPanel>
         </Grid>
 
         <Grid Grid.Column="1" RowDefinitions="Auto,2*,Auto,*,Auto,*" Margin="0 0 10 0">
@@ -68,9 +72,15 @@
             <TextBox Grid.Row="5" Name="SecondErrorsBox" Classes="error" IsReadOnly="True" />
         </Grid>
 
-        <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="10" Margin="0 10 0 0">
-            <Button Name="FirstPassButton" Content="Первый проход" Click="OnFirstPass" />
-            <Button Name="SecondPassButton" Content="Второй проход" Click="OnSecondPass" IsEnabled="False" />
-        </StackPanel>
+        <DockPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0 10 0 0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="Пример" VerticalAlignment="Center" Margin="0" />
+                <ComboBox Name="ExamplesBox" Width="460" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Name="FirstPassButton" Content="Первый проход" Click="OnFirstPass" />
+                <Button Name="SecondPassButton" Content="Второй проход" Click="OnSecondPass" IsEnabled="False" />
+            </StackPanel>
+        </DockPanel>
     </Grid>
 </Window>
