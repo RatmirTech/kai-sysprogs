@@ -49,6 +49,9 @@ public static class FirstPass
         return new FirstPassResult(name, start, address - start, ReadEnd(end, start, rows), rows, symbols, opCodes);
     }
 
+    static AsmException Fail(SourceLine line, int operand, string message) =>
+        AsmException.AtSource(line.Number, line.Positions[operand], message);
+
     static (string Name, int Start) ReadStart(SourceLine line)
     {
         if (line.Command != "START")
@@ -60,11 +63,11 @@ public static class FirstPass
 
         var operand = line.Operands[0];
         if (!Rules.IsAddress(operand))
-            throw AsmException.AtSource(line.Number, $"адрес загрузки «{operand}» должен быть 16-ричным числом не длиннее {Rules.MaxAddressDigits} цифр");
+            throw Fail(line, 0, $"адрес загрузки «{operand}» должен быть 16-ричным числом не длиннее {Rules.MaxAddressDigits} цифр");
 
         var start = Convert.ToInt32(operand, 16);
         if (start == 0)
-            throw AsmException.AtSource(line.Number, "адрес загрузки не может быть равен 0");
+            throw Fail(line, 0, "адрес загрузки не может быть равен 0");
 
         return (line.Label, start);
     }
@@ -72,16 +75,16 @@ public static class FirstPass
     static int ReadEnd(SourceLine line, int start, List<SupportRow> rows)
     {
         if (line.Label is not null)
-            throw AsmException.AtSource(line.Number, "у директивы END не может быть метки");
+            throw AsmException.AtSource(line.Number, 1, "у директивы END не может быть метки");
         if (line.Operands.Length > 1)
-            throw AsmException.AtSource(line.Number, "у END допускается не более одного операнда - адрес точки входа");
+            throw Fail(line, 1, "у END допускается не более одного операнда - адрес точки входа");
 
         var entry = start;
         if (line.Operands.Length == 1)
         {
             var operand = line.Operands[0];
             if (!Rules.IsAddress(operand))
-                throw AsmException.AtSource(line.Number, $"адрес точки входа «{operand}» должен быть 16-ричным числом не длиннее {Rules.MaxAddressDigits} цифр");
+                throw Fail(line, 0, $"адрес точки входа «{operand}» должен быть 16-ричным числом не длиннее {Rules.MaxAddressDigits} цифр");
             entry = Convert.ToInt32(operand, 16);
         }
 
@@ -94,9 +97,9 @@ public static class FirstPass
     static void AddSymbol(List<Symbol> symbols, string programName, string label, int address, int line)
     {
         if (label == programName)
-            throw AsmException.AtSource(line, $"метка {label} совпадает с именем программы");
+            throw AsmException.AtSource(line, 1, $"метка {label} совпадает с именем программы");
         if (symbols.Find(s => s.Name == label) is { } existing)
-            throw AsmException.AtSource(line, $"метка {label} уже объявлена в строке {existing.Line}");
+            throw AsmException.AtSource(line, 1, $"метка {label} уже объявлена в строке {existing.Line}");
 
         symbols.Add(new Symbol(label, address, line));
     }
@@ -106,10 +109,10 @@ public static class FirstPass
         if (opCodes.Find(line.Command) is { } op)
         {
             CheckCommand(line, op);
-            return new SupportRow(line.Number, address, op.Length, op.MachineCode.ToString("X2"), op, line.Operands);
+            return new SupportRow(line, address, op.Length, op.MachineCode.ToString("X2"), op);
         }
 
-        return new SupportRow(line.Number, address, DirectiveSize(line), line.Command, null, line.Operands);
+        return new SupportRow(line, address, DirectiveSize(line), line.Command, null);
     }
 
     static void CheckCommand(SourceLine line, OpCode op)
@@ -120,16 +123,17 @@ public static class FirstPass
         {
             case 1:
                 if (operands.Length > 0)
-                    throw AsmException.AtSource(line.Number, $"у команды {op.Name} не должно быть операндов");
+                    throw Fail(line, 0, $"у команды {op.Name} не должно быть операндов");
                 break;
 
             case 2:
                 if (operands.Length == 0)
-                    throw AsmException.AtSource(line.Number, $"у команды {op.Name} нет операндов: нужно число 0..255 или два регистра");
-                if (operands.Length == 1 && !IsByte(operands[0]))
-                    throw AsmException.AtSource(line.Number, $"операнд «{operands[0]}» команды {op.Name} должен быть числом 0..{Rules.MaxByte} (или укажите два регистра)");
-                if (operands.Length == 2 && operands.FirstOrDefault(o => !Rules.IsRegister(o)) is { } wrong)
-                    throw AsmException.AtSource(line.Number, $"операнд «{wrong}» команды {op.Name} должен быть регистром R0..R15");
+                    throw AsmException.AtSource(line.Number, $"у команды {op.Name} нет операндов: нужно число 0..{Rules.MaxByte} или два регистра");
+                if (operands.Length == 1 && !Rules.TryNumber(operands[0], Rules.MaxByte, out _))
+                    throw Fail(line, 0, $"операнд «{operands[0]}» команды {op.Name} должен быть числом 0..{Rules.MaxByte} (или укажите два регистра)");
+                for (var i = 0; operands.Length == 2 && i < 2; i++)
+                    if (!Rules.IsRegister(operands[i]))
+                        throw Fail(line, i, $"операнд «{operands[i]}» команды {op.Name} должен быть регистром R0..R15");
                 break;
 
             default:
@@ -138,8 +142,6 @@ public static class FirstPass
                 break;
         }
     }
-
-    static bool IsByte(string operand) => Rules.TryNumber(operand, Rules.MaxByte, out _);
 
     static int DirectiveSize(SourceLine line)
     {
@@ -151,19 +153,19 @@ public static class FirstPass
         var operand = line.Operands[0];
         return line.Command switch
         {
-            "WORD" => WordSize(line.Number, operand),
-            "BYTE" => ByteOperand.Size(line.Number, operand),
+            "WORD" => WordSize(line, operand),
+            "BYTE" => ByteOperand.Size(operand, message => Fail(line, 0, message)),
             "RESB" => Reserve(line, operand, 1),
             _ => Reserve(line, operand, Rules.WordSize),
         };
     }
 
-    static int WordSize(int line, string operand)
+    static int WordSize(SourceLine line, string operand)
     {
         if (operand == "?" || Rules.TryNumber(operand, Rules.MaxAddress, out _))
             return Rules.WordSize;
 
-        throw AsmException.AtSource(line, $"операнд WORD «{operand}» должен быть числом от 0 до {Rules.MaxAddress} (не более {Rules.MaxAddress.ToString().Length} цифр) или ?");
+        throw Fail(line, 0, $"операнд WORD «{operand}» должен быть числом от 0 до {Rules.MaxAddress} (не более {Rules.MaxAddress.ToString().Length} цифр) или ?");
     }
 
     static int Reserve(SourceLine line, string operand, int unit)
@@ -171,6 +173,6 @@ public static class FirstPass
         if (Rules.TryNumber(operand, Rules.MaxAddress, out var count) && count > 0)
             return count * unit;
 
-        throw AsmException.AtSource(line.Number, $"операнд {line.Command} «{operand}» должен быть числом от 1 до {Rules.MaxAddress} (не более {Rules.MaxAddress.ToString().Length} цифр)");
+        throw Fail(line, 0, $"операнд {line.Command} «{operand}» должен быть числом от 1 до {Rules.MaxAddress} (не более {Rules.MaxAddress.ToString().Length} цифр)");
     }
 }

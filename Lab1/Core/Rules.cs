@@ -5,13 +5,13 @@ public static class Rules
     public const int MaxAddress = 0xFFFFFF;
     public const int MaxOpCode = 0x3F;
     public const int MaxMnemonicLength = 6;
-    public const int MaxNameLength = 10;
+    public const int MaxNameLength = 256;
     public const int MaxAddressDigits = 6;
     public const int OpCodeDigits = 2;
     public const int WordSize = 3;
     public const int MaxByte = 255;
     public const int MaxDataBytes = 30;
-    public const int MaxOperandLength = MaxDataBytes * 2 + 3;
+    public const int MaxOperandLength = MaxNameLength;
 
     public static readonly string[] Directives = ["START", "END", "WORD", "BYTE", "RESB", "RESW"];
 

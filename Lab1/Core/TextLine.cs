@@ -18,7 +18,7 @@ public static class TextLine
         {
             var c = line[i];
             if (c == '\t')
-                throw fail(i + 1, "табуляция недопустима, используйте пробелы");
+                throw fail(i + 1, "табуляция недопустима, используйте пробел");
             if (c == '"')
                 quoted = !quoted;
 
@@ -33,10 +33,29 @@ public static class TextLine
         return result.ToString();
     }
 
-    public static string Field(string line, int start, int width) =>
-        start >= line.Length ? "" : line.Substring(start, Math.Min(width, line.Length - start));
+    public static List<(string Text, int Position)> Parts(string line, int start, Func<int, string, AsmException> fail)
+    {
+        var parts = new List<(string Text, int Position)>();
+        var quoted = false;
+        var begin = start;
 
-    public static int FirstNonSpace(string line, int start) => line.Length - line[start..].TrimStart().Length;
+        for (var i = start; i < line.Length; i++)
+        {
+            if (line[i] == '"')
+                quoted = !quoted;
+            if (quoted || line[i] != ' ')
+                continue;
+
+            if (line[i + 1] == ' ')
+                throw fail(i + 2, "между частями строки должен быть ровно один пробел");
+
+            parts.Add((line[begin..i], begin + 1));
+            begin = i + 1;
+        }
+
+        parts.Add((line[begin..], begin + 1));
+        return parts;
+    }
 
     public static (int Line, int Column) Position(string text, int index)
     {

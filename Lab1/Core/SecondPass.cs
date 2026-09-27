@@ -22,7 +22,7 @@ public static class SecondPass
         if (row.OpCode is { } op)
             return row.Code + Operands(row, op, symbols, opCodes);
 
-        var operand = row.Operands[0];
+        var operand = row.Source.Operands[0];
         return row.Code switch
         {
             "WORD" => operand == "?" ? "" : int.Parse(operand).ToString("X6"),
@@ -33,7 +33,7 @@ public static class SecondPass
 
     static string Operands(SupportRow row, OpCode op, Dictionary<string, Symbol> symbols, OpCodeTable opCodes)
     {
-        var operands = row.Operands;
+        var operands = row.Source.Operands;
 
         return op.Length switch
         {
@@ -46,15 +46,15 @@ public static class SecondPass
 
     static string Address(SupportRow row, OpCode op, Dictionary<string, Symbol> symbols, OpCodeTable opCodes)
     {
-        var name = row.Operands[0];
+        var name = row.Source.Operands[0];
         if (!symbols.TryGetValue(name, out var symbol))
-            throw AsmException.AtSource(row.Line, Layout.OperandPosition, NotLabel(name, op, opCodes));
+            throw AsmException.AtSource(row.Source.Number, row.Source.Positions[0], NotLabel(name, op, opCodes));
 
         if (op.Length == 4)
             return symbol.Address.ToString("X6");
 
         if (symbol.Address > 0xFFFF)
-            throw AsmException.AtSource(row.Line, Layout.OperandPosition, $"адрес метки {name} ({symbol.Address:X6}) не помещается в 2 байта команды {op.Name}");
+            throw AsmException.AtSource(row.Source.Number, row.Source.Positions[0], $"адрес метки {name} ({symbol.Address:X6}) не помещается в 2 байта команды {op.Name}");
 
         return symbol.Address.ToString("X4");
     }
@@ -67,8 +67,6 @@ public static class SecondPass
             return $"операнд {operand} команды {op.Name} - директива, а нужна метка";
         if (opCodes.Contains(operand))
             return $"операнд {operand} команды {op.Name} - команда, а нужна метка";
-        if (Rules.IsName(operand) && operand.Length > Rules.MaxNameLength)
-            return $"операнд {operand} длиннее {Rules.MaxNameLength} символов, такой метки быть не может";
         if (Rules.IsName(operand))
             return $"метка {operand} не объявлена";
         return $"операнд «{operand}» команды {op.Name} должен быть меткой";

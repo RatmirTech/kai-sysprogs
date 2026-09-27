@@ -1,6 +1,6 @@
 namespace Core;
 
-public sealed record SupportRow(int Line, int Address, int Size, string Code, OpCode? OpCode, string[] Operands);
+public sealed record SupportRow(SourceLine Source, int Address, int Size, string Code, OpCode? OpCode);
 
 public sealed record Symbol(string Name, int Address, int Line);
 

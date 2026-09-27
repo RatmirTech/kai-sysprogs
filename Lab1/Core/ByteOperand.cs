@@ -4,7 +4,7 @@ namespace Core;
 
 public static class ByteOperand
 {
-    public static int Size(int line, string operand)
+    public static int Size(string operand, Func<string, AsmException> fail)
     {
         if (operand == "?")
             return 1;
@@ -12,29 +12,31 @@ public static class ByteOperand
         if (Rules.IsDecimal(operand))
             return Rules.TryNumber(operand, Rules.MaxByte, out _)
                 ? 1
-                : throw AsmException.AtSource(line, $"число {operand} в BYTE должно быть от 0 до {Rules.MaxByte} (не более 3 цифр)");
+                : throw fail($"число {operand} в BYTE должно быть от 0 до {Rules.MaxByte} (не более 3 цифр)");
 
-        if (TryUnquote(operand, 'C', out var text))
+        if (TryText(operand, out var text))
         {
             if (text.Length == 0)
-                throw AsmException.AtSource(line, "пустая строка C\"\"");
+                throw fail("пустая строка");
             if (!text.All(IsPrintable))
-                throw AsmException.AtSource(line, $"в строке {operand} допустимы только латинские буквы, цифры и знаки ASCII без кавычек");
+                throw fail($"в строке {operand} допустимы только латинские буквы, цифры и знаки ASCII без кавычек");
             if (text.Length > Rules.MaxDataBytes)
-                throw AsmException.AtSource(line, $"строка C\"...\" длиннее {Rules.MaxDataBytes} символов");
+                throw fail($"строка длиннее {Rules.MaxDataBytes} символов");
             return text.Length;
         }
 
-        if (TryUnquote(operand, 'X', out var hex))
+        if (TryUnquote(operand, "X\"", out var hex))
         {
             if (!Rules.IsHex(hex))
-                throw AsmException.AtSource(line, $"в {operand} допустимы только 16-ричные цифры");
+                throw fail($"в {operand} допустимы только 16-ричные цифры");
             if (hex.Length % 2 != 0)
-                throw AsmException.AtSource(line, $"в {operand} нечётное число 16-ричных цифр");
+                throw fail($"в {operand} нечётное число 16-ричных цифр");
+            if (hex.Length / 2 > Rules.MaxDataBytes)
+                throw fail($"в X\"...\" больше {Rules.MaxDataBytes} байт ({Rules.MaxDataBytes * 2} цифр)");
             return hex.Length / 2;
         }
 
-        throw AsmException.AtSource(line, $"неверный операнд BYTE «{operand}»: ожидается число 0..255, C\"текст\", X\"16-ричные цифры\" или ?");
+        throw fail($"неверный операнд BYTE «{operand}»: ожидается число 0..{Rules.MaxByte}, C\"текст\", \"текст\", X\"16-ричные цифры\" или ?");
     }
 
     public static string Code(string operand)
@@ -43,15 +45,18 @@ public static class ByteOperand
             return "";
         if (Rules.IsDecimal(operand))
             return int.Parse(operand).ToString("X2");
-        if (TryUnquote(operand, 'C', out var text))
+        if (TryText(operand, out var text))
             return Convert.ToHexString(Encoding.ASCII.GetBytes(text));
         return operand[2..^1].ToUpperInvariant();
     }
 
-    static bool TryUnquote(string operand, char prefix, out string content)
+    static bool TryText(string operand, out string text) =>
+        TryUnquote(operand, "C\"", out text) || TryUnquote(operand, "\"", out text);
+
+    static bool TryUnquote(string operand, string prefix, out string content)
     {
-        var quoted = operand.Length >= 3 && operand[0] == prefix && operand[1] == '"' && operand[^1] == '"';
-        content = quoted ? operand[2..^1] : "";
+        var quoted = operand.Length > prefix.Length && operand.StartsWith(prefix) && operand[^1] == '"';
+        content = quoted ? operand[prefix.Length..^1] : "";
         return quoted;
     }
 
