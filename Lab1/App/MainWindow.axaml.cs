@@ -14,6 +14,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         SourceHint.Text = Layout.SourceHint;
         OpCodesHint.Text = Layout.OpCodesHint;
+        AddressBox.MaxLength = Rules.AddressDigits;
         SourceBox.TextChanged += (_, _) => OnSourceChanged();
         OpCodesBox.TextChanged += (_, _) => Reset();
         AddressBox.TextChanged += (_, _) => OnAddressChanged();
@@ -71,13 +72,15 @@ public partial class MainWindow : Window
     {
         Reset();
         var result = FirstPass.Run(SourceBox.Text ?? "", OpCodesBox.Text ?? "");
-        SupportBox.Text = Printer.SupportTable(result);
-        SymbolsBox.Text = Printer.Symbols(result);
-        FirstErrorsBox.Text = Printer.Lines(result.Errors);
         if (result.Errors.Count > 0)
+        {
+            FirstErrorsBox.Text = Printer.Lines(result.Errors);
             return;
+        }
 
         program = result;
+        SupportBox.Text = Printer.SupportTable(result);
+        SymbolsBox.Text = Printer.Symbols(result);
         FirstPassButton.IsEnabled = false;
         SecondPassButton.IsEnabled = true;
     }
