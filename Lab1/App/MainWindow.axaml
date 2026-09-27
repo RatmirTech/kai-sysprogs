@@ -19,15 +19,25 @@
             <Setter Property="Margin" Value="0 8 0 4" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="Margin" Value="0 2" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
     </Window.Styles>
 
     <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*,*" Margin="10">
 
-        <Grid Grid.Column="0" RowDefinitions="Auto,2*,Auto,*" Margin="0 0 10 0">
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,2*,Auto,Auto,Auto,*,Auto" Margin="0 0 10 0">
             <TextBlock Grid.Row="0" Text="Исходный текст" />
-            <TextBox Grid.Row="1" Name="SourceBox" />
-            <TextBlock Grid.Row="2" Text="Таблица кодов операций" />
-            <TextBox Grid.Row="3" Name="OpCodesBox" />
+            <TextBlock Grid.Row="1" Name="SourceHint" Classes="hint" />
+            <TextBox Grid.Row="2" Name="SourceBox" />
+            <TextBlock Grid.Row="3" Name="SourceCaret" Classes="hint" />
+            <TextBlock Grid.Row="4" Text="Таблица кодов операций" />
+            <TextBlock Grid.Row="5" Name="OpCodesHint" Classes="hint" />
+            <TextBox Grid.Row="6" Name="OpCodesBox" />
+            <TextBlock Grid.Row="7" Name="OpCodesCaret" Classes="hint" />
         </Grid>
 
         <Grid Grid.Column="1" RowDefinitions="Auto,2*,Auto,*,Auto,*" Margin="0 0 10 0">
