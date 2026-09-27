@@ -1,9 +1,56 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="App.MainWindow"
-        Title="App">
-    Welcome to Avalonia!
+        Title="Двухпросмотровый ассемблер в абсолютном формате"
+        Width="1400" Height="850"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Styles>
+        <Style Selector="TextBox">
+            <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+        </Style>
+        <Style Selector="TextBox.error">
+            <Setter Property="Foreground" Value="Firebrick" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="Margin" Value="0 8 0 4" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*,*" Margin="10">
+
+        <Grid Grid.Column="0" RowDefinitions="Auto,2*,Auto,*" Margin="0 0 10 0">
+            <TextBlock Grid.Row="0" Text="Исходный текст" />
+            <TextBox Grid.Row="1" Name="SourceBox" />
+            <TextBlock Grid.Row="2" Text="Таблица кодов операций" />
+            <TextBox Grid.Row="3" Name="OpCodesBox" />
+        </Grid>
+
+        <Grid Grid.Column="1" RowDefinitions="Auto,2*,Auto,*,Auto,*" Margin="0 0 10 0">
+            <TextBlock Grid.Row="0" Text="Вспомогательная таблица" />
+            <TextBox Grid.Row="1" Name="SupportBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="2" Text="Таблица символических имён" />
+            <TextBox Grid.Row="3" Name="SymbolsBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="4" Text="Ошибки первого прохода" />
+            <TextBox Grid.Row="5" Name="FirstErrorsBox" Classes="error" IsReadOnly="True" />
+        </Grid>
+
+        <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto,3*,Auto,*">
+            <TextBlock Grid.Row="0" Text="Заголовок (имя, адрес загрузки, длина)" />
+            <TextBox Grid.Row="1" Name="HeaderBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="2" Text="Объектный модуль" />
+            <TextBox Grid.Row="3" Name="ObjectBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="4" Text="Ошибки второго прохода" />
+            <TextBox Grid.Row="5" Name="SecondErrorsBox" Classes="error" IsReadOnly="True" />
+        </Grid>
+
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="10" Margin="0 10 0 0">
+            <Button Name="FirstPassButton" Content="Первый проход" Click="OnFirstPass" />
+            <Button Name="SecondPassButton" Content="Второй проход" Click="OnSecondPass" IsEnabled="False" />
+        </StackPanel>
+    </Grid>
 </Window>
