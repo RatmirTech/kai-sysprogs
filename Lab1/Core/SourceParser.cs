@@ -2,16 +2,13 @@ namespace Core;
 
 public static class SourceParser
 {
-    public static List<SourceLine> Parse(string text, OpCodeTable opCodes)
+    public static IEnumerable<SourceLine> Parse(string text, OpCodeTable opCodes)
     {
-        var result = new List<SourceLine>();
         var lines = TextLine.Split(text);
 
         for (var i = 0; i < lines.Length; i++)
             if (lines[i].Length > 0)
-                result.Add(ParseLine(i + 1, lines[i], opCodes));
-
-        return result;
+                yield return ParseLine(i + 1, lines[i], opCodes);
     }
 
     static SourceLine ParseLine(int number, string raw, OpCodeTable opCodes)
@@ -39,6 +36,10 @@ public static class SourceParser
 
         if (operands.Count > 2)
             throw Fail(operands[2].Position, $"у {command} {operands.Count} операнда, допускается не более 2");
+
+        foreach (var (operand, position) in operands)
+            if (operand.Length > Rules.MaxOperandLength)
+                throw Fail(position, $"операнд длиннее {Rules.MaxOperandLength} символов");
 
         return new SourceLine(number, label, command, [.. operands.Select(o => o.Text)]);
     }

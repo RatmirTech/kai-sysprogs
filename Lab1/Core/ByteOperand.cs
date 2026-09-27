@@ -10,9 +10,9 @@ public static class ByteOperand
             return 1;
 
         if (Rules.IsDecimal(operand))
-            return int.TryParse(operand, out var value) && value <= 255
+            return Rules.TryNumber(operand, Rules.MaxByte, out _)
                 ? 1
-                : throw AsmException.AtSource(line, $"число {operand} в BYTE должно быть от 0 до 255");
+                : throw AsmException.AtSource(line, $"число {operand} в BYTE должно быть от 0 до {Rules.MaxByte} (не более 3 цифр)");
 
         if (TryUnquote(operand, 'C', out var text))
         {
@@ -20,6 +20,8 @@ public static class ByteOperand
                 throw AsmException.AtSource(line, "пустая строка C\"\"");
             if (!text.All(IsPrintable))
                 throw AsmException.AtSource(line, $"в строке {operand} допустимы только латинские буквы, цифры и знаки ASCII без кавычек");
+            if (text.Length > Rules.MaxDataBytes)
+                throw AsmException.AtSource(line, $"строка C\"...\" длиннее {Rules.MaxDataBytes} символов");
             return text.Length;
         }
 

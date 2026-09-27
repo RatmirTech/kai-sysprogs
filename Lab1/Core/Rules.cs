@@ -9,6 +9,9 @@ public static class Rules
     public const int MaxAddressDigits = 6;
     public const int OpCodeDigits = 2;
     public const int WordSize = 3;
+    public const int MaxByte = 255;
+    public const int MaxDataBytes = 30;
+    public const int MaxOperandLength = MaxDataBytes * 2 + 3;
 
     public static readonly string[] Directives = ["START", "END", "WORD", "BYTE", "RESB", "RESW"];
 
@@ -28,4 +31,10 @@ public static class Rules
     public static bool IsDecimal(string token) => token.Length > 0 && token.All(char.IsAsciiDigit);
 
     public static bool IsAddress(string token) => IsHex(token) && token.Length <= MaxAddressDigits;
+
+    public static bool TryNumber(string token, int max, out int value)
+    {
+        value = 0;
+        return IsDecimal(token) && token.Length <= max.ToString().Length && int.TryParse(token, out value) && value <= max;
+    }
 }

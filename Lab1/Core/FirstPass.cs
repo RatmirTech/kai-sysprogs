@@ -5,24 +5,29 @@ public static class FirstPass
     public static FirstPassResult Run(string sourceText, string opCodesText)
     {
         var opCodes = OpCodeTable.Parse(opCodesText);
-        var lines = SourceParser.Parse(sourceText, opCodes);
-        if (lines.Count == 0)
-            throw new AsmException("Исходный текст пуст");
-
-        var (name, start) = ReadStart(lines[0]);
         var rows = new List<SupportRow>();
         var symbols = new List<Symbol>();
-        var address = start;
+        string? name = null;
+        var start = 0;
+        var address = 0;
+        SourceLine? end = null;
 
-        for (var i = 1; i < lines.Count; i++)
+        foreach (var line in SourceParser.Parse(sourceText, opCodes))
         {
-            var line = lines[i];
+            if (end is not null)
+                throw AsmException.AtSource(line.Number, "после директивы END не должно быть строк");
+
+            if (name is null)
+            {
+                (name, start) = ReadStart(line);
+                address = start;
+                continue;
+            }
 
             if (line.Command == "END")
             {
-                if (i < lines.Count - 1)
-                    throw AsmException.AtSource(lines[i + 1].Number, "после директивы END не должно быть строк");
-                return new FirstPassResult(name, start, address - start, ReadEnd(line, start, rows), rows, symbols, opCodes);
+                end = line;
+                continue;
             }
 
             if (line.Label is not null)
@@ -36,7 +41,12 @@ public static class FirstPass
             address += row.Size;
         }
 
-        throw new AsmException("Не найдена директива END");
+        if (name is null)
+            throw new AsmException("Исходный текст пуст");
+        if (end is null)
+            throw new AsmException("Не найдена директива END");
+
+        return new FirstPassResult(name, start, address - start, ReadEnd(end, start, rows), rows, symbols, opCodes);
     }
 
     static (string Name, int Start) ReadStart(SourceLine line)
@@ -117,7 +127,7 @@ public static class FirstPass
                 if (operands.Length == 0)
                     throw AsmException.AtSource(line.Number, $"у команды {op.Name} нет операндов: нужно число 0..255 или два регистра");
                 if (operands.Length == 1 && !IsByte(operands[0]))
-                    throw AsmException.AtSource(line.Number, $"операнд «{operands[0]}» команды {op.Name} должен быть числом 0..255 (или укажите два регистра)");
+                    throw AsmException.AtSource(line.Number, $"операнд «{operands[0]}» команды {op.Name} должен быть числом 0..{Rules.MaxByte} (или укажите два регистра)");
                 if (operands.Length == 2 && operands.FirstOrDefault(o => !Rules.IsRegister(o)) is { } wrong)
                     throw AsmException.AtSource(line.Number, $"операнд «{wrong}» команды {op.Name} должен быть регистром R0..R15");
                 break;
@@ -129,7 +139,7 @@ public static class FirstPass
         }
     }
 
-    static bool IsByte(string operand) => Rules.IsDecimal(operand) && int.TryParse(operand, out var value) && value <= 255;
+    static bool IsByte(string operand) => Rules.TryNumber(operand, Rules.MaxByte, out _);
 
     static int DirectiveSize(SourceLine line)
     {
@@ -150,17 +160,17 @@ public static class FirstPass
 
     static int WordSize(int line, string operand)
     {
-        if (operand == "?" || Rules.IsDecimal(operand) && int.TryParse(operand, out var value) && value <= Rules.MaxAddress)
+        if (operand == "?" || Rules.TryNumber(operand, Rules.MaxAddress, out _))
             return Rules.WordSize;
 
-        throw AsmException.AtSource(line, $"операнд WORD «{operand}» должен быть числом от 0 до {Rules.MaxAddress} или ?");
+        throw AsmException.AtSource(line, $"операнд WORD «{operand}» должен быть числом от 0 до {Rules.MaxAddress} (не более {Rules.MaxAddress.ToString().Length} цифр) или ?");
     }
 
     static int Reserve(SourceLine line, string operand, int unit)
     {
-        if (Rules.IsDecimal(operand) && int.TryParse(operand, out var count) && count > 0 && count <= Rules.MaxAddress)
+        if (Rules.TryNumber(operand, Rules.MaxAddress, out var count) && count > 0)
             return count * unit;
 
-        throw AsmException.AtSource(line.Number, $"операнд {line.Command} «{operand}» должен быть целым числом от 1 до {Rules.MaxAddress}");
+        throw AsmException.AtSource(line.Number, $"операнд {line.Command} «{operand}» должен быть числом от 1 до {Rules.MaxAddress} (не более {Rules.MaxAddress.ToString().Length} цифр)");
     }
 }
