@@ -4,14 +4,14 @@ namespace Core;
 
 public static class ByteOperand
 {
-    public static int Size(string operand, Func<string, AsmException> fail)
+    public static (int Size, string Code) Encode(string operand, Func<string, AsmException> fail)
     {
         if (operand == "?")
-            return 1;
+            return (1, "");
 
         if (Rules.IsDecimal(operand))
-            return Rules.TryNumber(operand, Rules.MaxByte, out _)
-                ? 1
+            return Rules.TryNumber(operand, Rules.MaxByte, out var value)
+                ? (1, value.ToString("X2"))
                 : throw fail($"число {operand} в BYTE должно быть от 0 до {Rules.MaxByte} (не более 3 цифр)");
 
         if (TryText(operand, out var text))
@@ -22,7 +22,7 @@ public static class ByteOperand
                 throw fail($"в строке {operand} допустимы только латинские буквы, цифры и знаки ASCII без кавычек");
             if (text.Length > Rules.MaxDataBytes)
                 throw fail($"строка длиннее {Rules.MaxDataBytes} символов");
-            return text.Length;
+            return (text.Length, Convert.ToHexString(Encoding.ASCII.GetBytes(text)));
         }
 
         if (TryUnquote(operand, "X\"", out var hex))
@@ -33,21 +33,10 @@ public static class ByteOperand
                 throw fail($"в {operand} нечётное число 16-ричных цифр");
             if (hex.Length / 2 > Rules.MaxDataBytes)
                 throw fail($"в X\"...\" больше {Rules.MaxDataBytes} байт ({Rules.MaxDataBytes * 2} цифр)");
-            return hex.Length / 2;
+            return (hex.Length / 2, hex.ToUpperInvariant());
         }
 
-        throw fail($"неверный операнд BYTE «{operand}»: ожидается число 0..{Rules.MaxByte}, C\"текст\", \"текст\", X\"16-ричные цифры\" или ?");
-    }
-
-    public static string Code(string operand)
-    {
-        if (operand == "?")
-            return "";
-        if (Rules.IsDecimal(operand))
-            return int.Parse(operand).ToString("X2");
-        if (TryText(operand, out var text))
-            return Convert.ToHexString(Encoding.ASCII.GetBytes(text));
-        return operand[2..^1].ToUpperInvariant();
+        throw fail($"неверный операнд BYTE «{operand}»: ожидается число 0..{Rules.MaxByte}, \"текст\", C\"текст\", X\"16-ричные цифры\" или ?");
     }
 
     static bool TryText(string operand, out string text) =>

@@ -16,32 +16,41 @@ public sealed class OpCodeTable
 
     public bool Contains(string name) => byName.ContainsKey(name);
 
-    public static OpCodeTable Parse(string text)
+    public static OpCodeTable Parse(string text, List<AsmException> errors)
     {
         var items = new List<(OpCode Op, int Line)>();
         var lines = TextLine.Split(text);
+        var before = errors.Count;
 
         for (var i = 0; i < lines.Length; i++)
         {
             var number = i + 1;
-            if (lines[i].Length == 0)
+            var code = TextLine.WithoutComment(lines[i]);
+            if (code.Length == 0)
                 continue;
 
-            var op = ParseLine(number, lines[i]);
+            try
+            {
+                var op = ParseLine(number, code);
 
-            var sameName = items.Find(x => x.Op.Name == op.Name);
-            if (sameName.Op is not null)
-                throw AsmException.AtOpCodes(number, 1, $"мнемоника {op.Name} уже задана в строке {sameName.Line}");
+                var sameName = items.Find(x => x.Op.Name == op.Name);
+                if (sameName.Op is not null)
+                    throw AsmException.AtOpCodes(number, 1, $"мнемоника {op.Name} уже задана в строке {sameName.Line}");
 
-            var sameCode = items.Find(x => x.Op.Code == op.Code);
-            if (sameCode.Op is not null)
-                throw AsmException.AtOpCodes(number, $"код {op.Code:X2} уже занят командой {sameCode.Op.Name} (строка {sameCode.Line})");
+                var sameCode = items.Find(x => x.Op.Code == op.Code);
+                if (sameCode.Op is not null)
+                    throw AsmException.AtOpCodes(number, $"код {op.Code:X2} уже занят командой {sameCode.Op.Name} (строка {sameCode.Line})");
 
-            items.Add((op, number));
+                items.Add((op, number));
+            }
+            catch (AsmException e)
+            {
+                errors.Add(e);
+            }
         }
 
-        if (items.Count == 0)
-            throw new AsmException("ТКО пуста");
+        if (items.Count == 0 && errors.Count == before)
+            errors.Add(new AsmException("ТКО пуста"));
 
         return new OpCodeTable([.. items.Select(x => x.Op)]);
     }

@@ -6,6 +6,26 @@ public static class TextLine
 {
     public static string[] Split(string text) => text.ReplaceLineEndings("\n").Split('\n');
 
+    public static (string Code, string Comment) SplitComment(string line)
+    {
+        var quoted = false;
+        for (var i = 0; i < line.Length; i++)
+        {
+            if (line[i] == '"')
+                quoted = !quoted;
+            if (line[i] == ';' && !quoted)
+                return (line[..i], line[i..]);
+        }
+
+        return (line, "");
+    }
+
+    public static string WithoutComment(string line)
+    {
+        var (code, comment) = SplitComment(line);
+        return comment.Length > 0 ? code.TrimEnd(' ') : code;
+    }
+
     public static string Normalize(string line, Func<int, string, AsmException> fail)
     {
         if (line.Length > 0 && line.Trim().Length == 0)

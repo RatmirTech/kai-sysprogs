@@ -1,6 +1,6 @@
 namespace Core;
 
-public sealed record SupportRow(SourceLine Source, int Address, int Size, string Code, OpCode? OpCode);
+public sealed record SupportRow(SourceLine Source, int Address, int Size, OpCode? OpCode, string Code, string? Label);
 
 public sealed record Symbol(string Name, int Address, int Line);
 
@@ -11,4 +11,7 @@ public sealed record FirstPassResult(
     int Entry,
     IReadOnlyList<SupportRow> Rows,
     IReadOnlyList<Symbol> Symbols,
-    OpCodeTable OpCodes);
+    OpCodeTable OpCodes,
+    IReadOnlyList<string> Errors);
+
+public sealed record SecondPassResult(IReadOnlyList<string> Records, IReadOnlyList<string> Errors);

@@ -3,15 +3,15 @@ namespace Core;
 public static class Rules
 {
     public const int MaxAddress = 0xFFFFFF;
+    public const int AddressDigits = 8;
     public const int MaxOpCode = 0x3F;
+    public const int OpCodeDigits = 2;
     public const int MaxMnemonicLength = 6;
     public const int MaxNameLength = 256;
-    public const int MaxAddressDigits = 6;
-    public const int OpCodeDigits = 2;
+    public const int MaxOperandLength = MaxNameLength;
     public const int WordSize = 3;
     public const int MaxByte = 255;
     public const int MaxDataBytes = 30;
-    public const int MaxOperandLength = MaxNameLength;
 
     public static readonly string[] Directives = ["START", "END", "WORD", "BYTE", "RESB", "RESW"];
 
@@ -30,11 +30,21 @@ public static class Rules
 
     public static bool IsDecimal(string token) => token.Length > 0 && token.All(char.IsAsciiDigit);
 
-    public static bool IsAddress(string token) => IsHex(token) && token.Length <= MaxAddressDigits;
-
     public static bool TryNumber(string token, int max, out int value)
     {
         value = 0;
         return IsDecimal(token) && token.Length <= max.ToString().Length && int.TryParse(token, out value) && value <= max;
     }
+
+    public static bool TryAddress(string token, out int value)
+    {
+        value = 0;
+        if (!IsHex(token) || token.Length > AddressDigits || Convert.ToInt64(token, 16) > MaxAddress)
+            return false;
+
+        value = Convert.ToInt32(token, 16);
+        return true;
+    }
+
+    public static string Address(int value) => value.ToString($"X{AddressDigits}");
 }

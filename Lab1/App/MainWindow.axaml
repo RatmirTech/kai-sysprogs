@@ -60,7 +60,7 @@
         </Grid>
 
         <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto,3*,Auto,*">
-            <TextBlock Grid.Row="0" Text="Заголовок (имя, адрес загрузки, длина)" />
+            <TextBlock Grid.Row="0" Text="Заголовок (имя, длина, адрес загрузки)" />
             <TextBox Grid.Row="1" Name="HeaderBox" IsReadOnly="True" />
             <TextBlock Grid.Row="2" Text="Объектный модуль" />
             <TextBox Grid.Row="3" Name="ObjectBox" IsReadOnly="True" />

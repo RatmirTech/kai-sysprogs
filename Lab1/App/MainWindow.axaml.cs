@@ -40,18 +40,16 @@ public partial class MainWindow : Window
     void OnFirstPass(object? sender, RoutedEventArgs e)
     {
         Reset();
-        try
-        {
-            program = FirstPass.Run(SourceBox.Text ?? "", OpCodesBox.Text ?? "");
-            SupportBox.Text = Printer.SupportTable(program);
-            SymbolsBox.Text = Printer.Symbols(program);
-            FirstPassButton.IsEnabled = false;
-            SecondPassButton.IsEnabled = true;
-        }
-        catch (AsmException ex)
-        {
-            FirstErrorsBox.Text = ex.Message;
-        }
+        var result = FirstPass.Run(SourceBox.Text ?? "", OpCodesBox.Text ?? "");
+        SupportBox.Text = Printer.SupportTable(result);
+        SymbolsBox.Text = Printer.Symbols(result);
+        FirstErrorsBox.Text = Printer.Lines(result.Errors);
+        if (result.Errors.Count > 0)
+            return;
+
+        program = result;
+        FirstPassButton.IsEnabled = false;
+        SecondPassButton.IsEnabled = true;
     }
 
     void OnSecondPass(object? sender, RoutedEventArgs e)
@@ -59,17 +57,10 @@ public partial class MainWindow : Window
         if (program is null)
             return;
 
-        try
-        {
-            HeaderBox.Text = Printer.Header(program);
-            ObjectBox.Text = Printer.ObjectModule(SecondPass.Run(program));
-        }
-        catch (AsmException ex)
-        {
-            HeaderBox.Text = "";
-            SecondErrorsBox.Text = ex.Message;
-        }
-
+        var result = SecondPass.Run(program);
+        HeaderBox.Text = result.Errors.Count == 0 ? Printer.Header(program) : "";
+        ObjectBox.Text = Printer.Lines(result.Records);
+        SecondErrorsBox.Text = Printer.Lines(result.Errors);
         FirstPassButton.IsEnabled = true;
         SecondPassButton.IsEnabled = false;
     }

@@ -2,13 +2,10 @@ namespace Core;
 
 public static class SourceParser
 {
-    public static IEnumerable<SourceLine> Parse(string text, OpCodeTable opCodes)
+    public static SourceLine? Parse(int number, string raw, OpCodeTable opCodes)
     {
-        var lines = TextLine.Split(text);
-
-        for (var i = 0; i < lines.Length; i++)
-            if (lines[i].Length > 0)
-                yield return ParseLine(i + 1, lines[i], opCodes);
+        var code = TextLine.WithoutComment(raw);
+        return code.Length == 0 ? null : ParseLine(number, code, opCodes);
     }
 
     static SourceLine ParseLine(int number, string raw, OpCodeTable opCodes)
