@@ -19,6 +19,11 @@
             <Setter Property="Margin" Value="0 8 0 4" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+        <Style Selector="TextBlock.caret">
+            <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="SteelBlue" />
+        </Style>
         <Style Selector="TextBlock.hint">
             <Setter Property="Margin" Value="0 2" />
             <Setter Property="FontWeight" Value="Normal" />
@@ -29,15 +34,19 @@
 
     <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*,*" Margin="10">
 
-        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,2*,Auto,Auto,Auto,*,Auto" Margin="0 0 10 0">
-            <TextBlock Grid.Row="0" Text="Исходный текст" />
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,2*,Auto,Auto,*" Margin="0 0 10 0">
+            <DockPanel Grid.Row="0">
+                <TextBlock DockPanel.Dock="Right" Name="SourceCaret" Classes="caret" />
+                <TextBlock Text="Исходный текст" />
+            </DockPanel>
             <TextBlock Grid.Row="1" Name="SourceHint" Classes="hint" />
             <TextBox Grid.Row="2" Name="SourceBox" />
-            <TextBlock Grid.Row="3" Name="SourceCaret" Classes="hint" />
-            <TextBlock Grid.Row="4" Text="Таблица кодов операций" />
-            <TextBlock Grid.Row="5" Name="OpCodesHint" Classes="hint" />
-            <TextBox Grid.Row="6" Name="OpCodesBox" />
-            <TextBlock Grid.Row="7" Name="OpCodesCaret" Classes="hint" />
+            <DockPanel Grid.Row="3">
+                <TextBlock DockPanel.Dock="Right" Name="OpCodesCaret" Classes="caret" />
+                <TextBlock Text="Таблица кодов операций" />
+            </DockPanel>
+            <TextBlock Grid.Row="4" Name="OpCodesHint" Classes="hint" />
+            <TextBox Grid.Row="5" Name="OpCodesBox" />
         </Grid>
 
         <Grid Grid.Column="1" RowDefinitions="Auto,2*,Auto,*,Auto,*" Margin="0 0 10 0">
