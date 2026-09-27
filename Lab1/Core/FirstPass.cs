@@ -6,7 +6,7 @@ public static class FirstPass
     {
         var opCodes = OpCodeTable.Parse(opCodesText);
         var rows = new List<SupportRow>();
-        var symbols = new List<Symbol>();
+        var symbols = new OrderedDictionary<string, Symbol>();
         string? name = null;
         var start = 0;
         var address = 0;
@@ -46,7 +46,7 @@ public static class FirstPass
         if (end is null)
             throw new AsmException("Не найдена директива END");
 
-        return new FirstPassResult(name, start, address - start, ReadEnd(end, start, rows), rows, symbols, opCodes);
+        return new FirstPassResult(name, start, address - start, ReadEnd(end, start, rows), rows, [.. symbols.Values], opCodes);
     }
 
     static AsmException Fail(SourceLine line, int operand, string message) =>
@@ -94,14 +94,14 @@ public static class FirstPass
         return entry;
     }
 
-    static void AddSymbol(List<Symbol> symbols, string programName, string label, int address, int line)
+    static void AddSymbol(OrderedDictionary<string, Symbol> symbols, string programName, string label, int address, int line)
     {
         if (label == programName)
             throw AsmException.AtSource(line, 1, $"метка {label} совпадает с именем программы");
-        if (symbols.Find(s => s.Name == label) is { } existing)
+        if (symbols.TryGetValue(label, out var existing))
             throw AsmException.AtSource(line, 1, $"метка {label} уже объявлена в строке {existing.Line}");
 
-        symbols.Add(new Symbol(label, address, line));
+        symbols.Add(label, new Symbol(label, address, line));
     }
 
     static SupportRow Measure(SourceLine line, OpCodeTable opCodes, int address)
