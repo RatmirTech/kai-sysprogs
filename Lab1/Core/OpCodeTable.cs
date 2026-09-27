@@ -19,25 +19,23 @@ public sealed class OpCodeTable
     public static OpCodeTable Parse(string text)
     {
         var items = new List<(OpCode Op, int Line)>();
-        var lines = Tokenizer.Lines(text);
+        var lines = TextLine.Split(text);
 
         for (var i = 0; i < lines.Length; i++)
         {
             var number = i + 1;
-            if (!Tokenizer.TrySplit(lines[i], out var tokens))
-                throw AsmException.AtOpCodes(number, "не закрыта кавычка");
-            if (tokens.Count == 0)
+            if (lines[i].Length == 0)
                 continue;
 
-            var op = ParseLine(number, tokens);
+            var op = ParseLine(number, lines[i]);
 
             var sameName = items.Find(x => x.Op.Name == op.Name);
             if (sameName.Op is not null)
-                throw AsmException.AtOpCodes(number, $"мнемоника {op.Name} уже задана в строке {sameName.Line}");
+                throw AsmException.AtOpCodes(number, 1, $"мнемоника {op.Name} уже задана в строке {sameName.Line}");
 
             var sameCode = items.Find(x => x.Op.Code == op.Code);
             if (sameCode.Op is not null)
-                throw AsmException.AtOpCodes(number, $"код {op.Code:X2} уже занят командой {sameCode.Op.Name} (строка {sameCode.Line})");
+                throw AsmException.AtOpCodes(number, Layout.CodePosition, $"код {op.Code:X2} уже занят командой {sameCode.Op.Name} (строка {sameCode.Line})");
 
             items.Add((op, number));
         }
@@ -48,31 +46,76 @@ public sealed class OpCodeTable
         return new OpCodeTable([.. items.Select(x => x.Op)]);
     }
 
-    static OpCode ParseLine(int number, List<string> tokens)
+    static OpCode ParseLine(int number, string raw)
     {
-        if (tokens.Count != 3)
-            throw AsmException.AtOpCodes(number, $"ожидается 3 поля «мнемоника код длина», найдено {tokens.Count}");
+        AsmException Fail(int position, string message) => AsmException.AtOpCodes(number, position, message);
 
-        var (name, code, length) = (tokens[0], tokens[1], tokens[2]);
+        var line = TextLine.Normalize(raw, Fail);
+        var name = ReadName(line, Fail);
+        var code = ReadCode(line, Fail);
+        var length = ReadLength(line, Fail);
+
+        return new OpCode(name, code, length);
+    }
+
+    static string ReadName(string line, Func<int, string, AsmException> fail)
+    {
+        var field = TextLine.Field(line, 0, Rules.MaxMnemonicLength);
+        var name = field.TrimEnd();
+
+        if (field[0] == ' ')
+            throw fail(TextLine.FirstNonSpace(line, 0) + 1, "мнемоника пишется с позиции 1");
+        if (name.Contains(' '))
+            throw fail(name.IndexOf(' ') + 1, $"код операции пишется с позиции {Layout.CodePosition}");
+        if (line.Length > Rules.MaxMnemonicLength && line[Rules.MaxMnemonicLength] != ' ')
+            throw fail(Rules.MaxMnemonicLength + 1, $"мнемоника длиннее {Rules.MaxMnemonicLength} символов");
 
         if (!Rules.IsName(name))
-            throw AsmException.AtOpCodes(number, $"мнемоника «{name}» должна начинаться с латинской буквы и состоять из латинских букв и цифр");
-        if (name.Length > Rules.MaxMnemonicLength)
-            throw AsmException.AtOpCodes(number, $"мнемоника {name} длиннее {Rules.MaxMnemonicLength} символов");
+            throw fail(1, $"мнемоника «{name}» должна начинаться с латинской буквы и состоять из латинских букв и цифр");
         if (Rules.IsDirective(name))
-            throw AsmException.AtOpCodes(number, $"мнемоника {name} совпадает с директивой");
+            throw fail(1, $"мнемоника {name} совпадает с директивой");
         if (Rules.IsRegister(name))
-            throw AsmException.AtOpCodes(number, $"мнемоника {name} совпадает с именем регистра");
+            throw fail(1, $"мнемоника {name} совпадает с именем регистра");
 
-        if (!Rules.IsHex(code) || code.Length > 2)
-            throw AsmException.AtOpCodes(number, $"код «{code}» должен быть 16-ричным числом из 1-2 цифр");
-        var value = Convert.ToInt32(code, 16);
-        if (value > Rules.MaxOpCode)
-            throw AsmException.AtOpCodes(number, $"код {value:X2} больше {Rules.MaxOpCode:X2}");
+        return name;
+    }
 
-        if (length is not ("1" or "2" or "3" or "4"))
-            throw AsmException.AtOpCodes(number, $"длина «{length}» должна быть числом от 1 до 4");
+    static int ReadCode(string line, Func<int, string, AsmException> fail)
+    {
+        var start = Layout.CodePosition - 1;
+        var field = TextLine.Field(line, start, Rules.OpCodeDigits);
 
-        return new OpCode(name, value, int.Parse(length));
+        if (field.Length == 0)
+            throw fail(line.Length + 1, $"нет кода операции: две 16-ричные цифры в позициях {Layout.CodePosition}-{Layout.CodePosition + 1}");
+        if (field[0] == ' ')
+            throw fail(TextLine.FirstNonSpace(line, start) + 1, $"код операции пишется с позиции {Layout.CodePosition}");
+        if (field.Length < Rules.OpCodeDigits || !Rules.IsHex(field))
+            throw fail(Layout.CodePosition, $"код операции «{field.TrimEnd()}» должен состоять из двух 16-ричных цифр");
+
+        var separator = start + Rules.OpCodeDigits;
+        if (line.Length > separator && line[separator] != ' ')
+            throw fail(separator + 1, "код операции длиннее двух цифр");
+
+        var code = Convert.ToInt32(field, 16);
+        if (code > Rules.MaxOpCode)
+            throw fail(Layout.CodePosition, $"код {code:X2} больше {Rules.MaxOpCode:X2}");
+
+        return code;
+    }
+
+    static int ReadLength(string line, Func<int, string, AsmException> fail)
+    {
+        var index = Layout.LengthPosition - 1;
+
+        if (line.Length <= index)
+            throw fail(line.Length + 1, $"нет длины команды: цифра от 1 до 4 в позиции {Layout.LengthPosition}");
+        if (line[index] == ' ')
+            throw fail(TextLine.FirstNonSpace(line, index) + 1, $"длина команды пишется в позиции {Layout.LengthPosition}");
+        if (line.Length > index + 1)
+            throw fail(index + 2, "после длины команды ничего не должно быть");
+        if (line[index] is < '1' or > '4')
+            throw fail(Layout.LengthPosition, $"длина команды «{line[index]}» должна быть от 1 до 4");
+
+        return line[index] - '0';
     }
 }

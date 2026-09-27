@@ -5,57 +5,112 @@ public static class SourceParser
     public static List<SourceLine> Parse(string text, OpCodeTable opCodes)
     {
         var result = new List<SourceLine>();
-        var lines = Tokenizer.Lines(text);
+        var lines = TextLine.Split(text);
 
         for (var i = 0; i < lines.Length; i++)
-        {
-            var number = i + 1;
-            if (!Tokenizer.TrySplit(lines[i], out var tokens))
-                throw AsmException.AtSource(number, "не закрыта кавычка");
-            if (tokens.Count > 0)
-                result.Add(ParseLine(number, tokens, opCodes));
-        }
+            if (lines[i].Length > 0)
+                result.Add(ParseLine(i + 1, lines[i], opCodes));
 
         return result;
     }
 
-    static SourceLine ParseLine(int number, List<string> tokens, OpCodeTable opCodes)
+    static SourceLine ParseLine(int number, string raw, OpCodeTable opCodes)
     {
-        bool IsCommand(string token) => Rules.IsDirective(token) || opCodes.Contains(token);
+        AsmException Fail(int position, string message) => AsmException.AtSource(number, position, message);
+        bool IsReserved(string word) => Rules.IsDirective(word) || opCodes.Contains(word);
 
-        string? label = null;
-        if (!IsCommand(tokens[0]))
+        var line = TextLine.Normalize(raw, Fail);
+        var label = ReadLabel(line, Fail);
+        var command = ReadCommand(line, Fail);
+        var operands = ReadOperands(line, Fail);
+
+        if (label is not null)
         {
-            if (tokens.Count == 1)
-                throw AsmException.AtSource(number, $"«{tokens[0]}» нет ни в ТКО, ни среди директив");
-            if (!IsCommand(tokens[1]))
-                throw AsmException.AtSource(number, $"не найдена команда: ни «{tokens[0]}», ни «{tokens[1]}» нет в ТКО и среди директив");
-
-            label = tokens[0];
-            CheckLabel(number, label);
+            if (!Rules.IsName(label))
+                throw Fail(1, $"метка «{label}» должна начинаться с латинской буквы и состоять из латинских букв и цифр");
+            if (Rules.IsRegister(label))
+                throw Fail(1, $"метка {label} совпадает с именем регистра");
+            if (IsReserved(label))
+                throw Fail(1, $"метка {label} совпадает с зарезервированным словом");
         }
 
-        var commandIndex = label is null ? 0 : 1;
-        var command = tokens[commandIndex];
-        var operands = tokens.Skip(commandIndex + 1).ToArray();
+        if (!IsReserved(command))
+            throw Fail(Layout.CommandPosition, $"команды «{command}» нет ни в ТКО, ни среди директив");
 
-        if (operands.Length > 2)
-            throw AsmException.AtSource(number, $"у {command} {operands.Length} операнда, допускается не более 2");
+        if (operands.Count > 2)
+            throw Fail(operands[2].Position, $"у {command} {operands.Count} операнда, допускается не более 2");
 
-        foreach (var operand in operands)
-            if (IsCommand(operand))
-                throw AsmException.AtSource(number, $"{operand} - зарезервированное слово, его нельзя использовать как операнд");
+        foreach (var (operand, position) in operands)
+            if (IsReserved(operand))
+                throw Fail(position, $"{operand} - зарезервированное слово, его нельзя использовать как операнд");
 
-        return new SourceLine(number, label, command, operands);
+        return new SourceLine(number, label, command, [.. operands.Select(o => o.Text)]);
     }
 
-    static void CheckLabel(int number, string label)
+    static string? ReadLabel(string line, Func<int, string, AsmException> fail)
     {
-        if (!Rules.IsName(label))
-            throw AsmException.AtSource(number, $"метка «{label}» должна начинаться с латинской буквы и состоять из латинских букв и цифр");
-        if (label.Length > Rules.MaxNameLength)
-            throw AsmException.AtSource(number, $"метка {label} длиннее {Rules.MaxNameLength} символов");
-        if (Rules.IsRegister(label))
-            throw AsmException.AtSource(number, $"метка {label} совпадает с именем регистра");
+        var field = TextLine.Field(line, 0, Rules.MaxNameLength);
+        var label = field.Trim();
+
+        if (label.Length > 0 && field[0] == ' ')
+            throw fail(TextLine.FirstNonSpace(line, 0) + 1, $"метка пишется с позиции 1, команда - с позиции {Layout.CommandPosition}");
+        if (label.Contains(' '))
+            throw fail(label.IndexOf(' ') + 1, $"после метки команда пишется с позиции {Layout.CommandPosition}");
+        if (line.Length > Rules.MaxNameLength && line[Rules.MaxNameLength] != ' ')
+            throw fail(Rules.MaxNameLength + 1, label.Length > 0
+                ? $"метка длиннее {Rules.MaxNameLength} символов"
+                : $"команда пишется с позиции {Layout.CommandPosition}");
+
+        return label.Length > 0 ? label : null;
+    }
+
+    static string ReadCommand(string line, Func<int, string, AsmException> fail)
+    {
+        var start = Layout.CommandPosition - 1;
+        if (line.Length <= start)
+            throw fail(line.Length + 1, $"нет команды: она пишется с позиции {Layout.CommandPosition}");
+
+        var field = TextLine.Field(line, start, Rules.MaxMnemonicLength);
+        if (field[0] == ' ')
+            throw fail(TextLine.FirstNonSpace(line, start) + 1, $"команда пишется с позиции {Layout.CommandPosition}");
+
+        var command = field.TrimEnd();
+        if (command.Contains(' '))
+            throw fail(start + command.IndexOf(' ') + 1, $"операнды пишутся с позиции {Layout.OperandPosition}");
+
+        var separator = Layout.OperandPosition - 2;
+        if (line.Length > separator && line[separator] != ' ')
+            throw fail(separator + 1, $"команда длиннее {Rules.MaxMnemonicLength} символов");
+
+        return command;
+    }
+
+    static List<(string Text, int Position)> ReadOperands(string line, Func<int, string, AsmException> fail)
+    {
+        var start = Layout.OperandPosition - 1;
+        var operands = new List<(string Text, int Position)>();
+        if (line.Length <= start)
+            return operands;
+
+        if (line[start] == ' ')
+            throw fail(TextLine.FirstNonSpace(line, start) + 1, $"операнд пишется с позиции {Layout.OperandPosition}");
+
+        var quoted = false;
+        for (var i = start; i < line.Length; i++)
+        {
+            if (line[i] == '"')
+                quoted = !quoted;
+            if (quoted || line[i] != ' ')
+                continue;
+
+            if (line[i + 1] == ' ')
+                throw fail(i + 2, "между операндами должен быть ровно один пробел");
+
+            operands.Add((line[start..i], start + 1));
+            start = i + 1;
+        }
+
+        operands.Add((line[start..], start + 1));
+        return operands;
     }
 }

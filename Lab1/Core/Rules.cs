@@ -7,6 +7,7 @@ public static class Rules
     public const int MaxMnemonicLength = 6;
     public const int MaxNameLength = 10;
     public const int MaxAddressDigits = 6;
+    public const int OpCodeDigits = 2;
     public const int WordSize = 3;
 
     public static readonly string[] Directives = ["START", "END", "WORD", "BYTE", "RESB", "RESW"];
