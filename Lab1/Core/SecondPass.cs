@@ -67,6 +67,8 @@ public static class SecondPass
             return $"операнд {operand} команды {op.Name} - директива, а нужна метка";
         if (opCodes.Contains(operand))
             return $"операнд {operand} команды {op.Name} - команда, а нужна метка";
+        if (operand.StartsWith('[') && operand.EndsWith(']'))
+            return $"относительная адресация {operand} не поддерживается в абсолютном формате, нужна метка";
         if (Rules.IsName(operand))
             return $"метка {operand} не объявлена";
         return $"операнд «{operand}» команды {op.Name} должен быть меткой";
