@@ -21,6 +21,8 @@ public static class TextLine
                 throw fail(i + 1, "табуляция недопустима, используйте пробел");
             if (c == '"')
                 quoted = !quoted;
+            if (!quoted && c is < ' ' or > '~')
+                throw fail(i + 1, $"недопустимый символ «{c}» (U+{(int)c:X4}): вне кавычек разрешены только латинские буквы, цифры и знаки ASCII");
 
             result.Append(quoted || c == '"' ? c : char.ToUpperInvariant(c));
         }
