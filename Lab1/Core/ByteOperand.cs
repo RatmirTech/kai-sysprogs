@@ -19,7 +19,7 @@ public static class ByteOperand
             if (text.Length == 0)
                 throw fail("пустая строка");
             if (!text.All(IsPrintable))
-                throw fail($"в строке {operand} допустимы только латинские буквы, цифры и знаки ASCII без кавычек");
+                throw fail($"в строке {operand} допустимы только латинские буквы, цифры и знаки ASCII");
             if (text.Length > Rules.MaxDataBytes)
                 throw fail($"строка длиннее {Rules.MaxDataBytes} символов");
             return (text.Length, Convert.ToHexString(Encoding.ASCII.GetBytes(text)));
@@ -49,5 +49,5 @@ public static class ByteOperand
         return quoted;
     }
 
-    static bool IsPrintable(char c) => c is >= ' ' and <= '~' and not '"';
+    static bool IsPrintable(char c) => c is >= ' ' and <= '~';
 }
