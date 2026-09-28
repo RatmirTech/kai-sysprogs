@@ -3,7 +3,8 @@ namespace Core;
 public static class Rules
 {
     public const int MaxAddress = 0xFFFFFF;
-    public const int AddressDigits = 8;
+    public const int AddressDigits = 6;
+    public const int AddressInputDigits = 8;
     public const int MaxOpCode = 0x3F;
     public const int OpCodeDigits = 2;
     public const int MaxMnemonicLength = 6;
@@ -39,7 +40,7 @@ public static class Rules
     public static bool TryAddress(string token, out int value)
     {
         value = 0;
-        if (!IsHex(token) || token.Length > AddressDigits || Convert.ToInt64(token, 16) > MaxAddress)
+        if (!IsHex(token) || token.Length > AddressInputDigits || Convert.ToInt64(token, 16) > MaxAddress)
             return false;
 
         value = Convert.ToInt32(token, 16);

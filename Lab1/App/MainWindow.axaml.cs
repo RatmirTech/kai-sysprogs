@@ -14,7 +14,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         SourceHint.Text = Layout.SourceHint;
         OpCodesHint.Text = Layout.OpCodesHint;
-        AddressBox.MaxLength = Rules.AddressDigits;
+        AddressBox.MaxLength = Rules.AddressInputDigits;
         SourceBox.TextChanged += (_, _) => OnSourceChanged();
         OpCodesBox.TextChanged += (_, _) => Reset();
         AddressBox.TextChanged += (_, _) => OnAddressChanged();

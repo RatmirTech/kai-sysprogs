@@ -119,7 +119,7 @@ public static class FirstPass
         if (line.Operands.Length == 0)
             errors.Add(AsmException.AtSource(line.Number, "у START не задан адрес загрузки"));
         else if (!Rules.TryAddress(line.Operands[0], out start))
-            errors.Add(Fail(line, 0, $"адрес загрузки «{line.Operands[0]}» должен быть 16-ричным числом не длиннее {Rules.AddressDigits} цифр, не больше {Rules.Address(Rules.MaxAddress)}"));
+            errors.Add(Fail(line, 0, $"адрес загрузки «{line.Operands[0]}» должен быть 16-ричным числом не длиннее {Rules.AddressInputDigits} цифр, не больше {Rules.Address(Rules.MaxAddress)}"));
         else if (start == 0)
             errors.Add(Fail(line, 0, "адрес загрузки не может быть равен 0"));
 
@@ -139,7 +139,7 @@ public static class FirstPass
         var entry = start;
         if (line.Operands.Length > 0 && !Rules.TryAddress(line.Operands[0], out entry))
         {
-            errors.Add(Fail(line, 0, $"адрес точки входа «{line.Operands[0]}» должен быть 16-ричным числом не длиннее {Rules.AddressDigits} цифр"));
+            errors.Add(Fail(line, 0, $"адрес точки входа «{line.Operands[0]}» должен быть 16-ричным числом не длиннее {Rules.AddressInputDigits} цифр"));
             return start;
         }
 
