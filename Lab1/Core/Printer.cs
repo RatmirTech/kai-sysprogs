@@ -3,7 +3,11 @@ namespace Core;
 public static class Printer
 {
     public static string SupportTable(FirstPassResult program) =>
-        Table(program.Rows.Select(r => new[] { Rules.Address(r.Address), r.OpCode is null ? r.Source.Command : r.Code[..2] }.Concat(r.Source.Operands).ToArray()));
+        Table([
+            [Rules.Address(program.Start), "START", Rules.Address(program.Start)],
+            .. program.Rows.Select(r => new[] { Rules.Address(r.Address), r.OpCode is null ? r.Source.Command : r.Code[..2] }.Concat(r.Source.Operands).ToArray()),
+            [Rules.Address(program.Start + program.Length), "END", Rules.Address(program.Entry)],
+        ]);
 
     public static string Symbols(FirstPassResult program) =>
         Table(program.Symbols.Select(s => new[] { s.Name, Rules.Address(s.Address) }));
