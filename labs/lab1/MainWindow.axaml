@@ -1,0 +1,101 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="900"
+        Width="1400" Height="900"
+        x:Class="Lab1SysProg.MainWindow"
+        x:CompileBindings="False"
+        Title="Лаба 1: Двухпросмотровый ассемблер для программы в абсолютном формате">
+
+    <Grid RowDefinitions="*,Auto" Margin="10">
+
+        <Grid Grid.Row="0" ColumnDefinitions="1.1*,1.4*,1*">
+
+            <!-- ===================== Колонка 1: исходные данные ===================== -->
+            <Grid Grid.Column="0" Margin="0,0,8,0" RowDefinitions="Auto,*,Auto,Auto,220">
+                <TextBlock Grid.Row="0" Text="Исходный текст программы" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"/>
+
+                <DataGrid Grid.Row="1" Name="SourceGrid" ItemsSource="{Binding SourceRows}"
+                          AutoGenerateColumns="False" CanUserSortColumns="False" GridLinesVisibility="All"
+                          HeadersVisibility="Column" BorderThickness="1" BorderBrush="Gray">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Метка" Binding="{Binding Label}" Width="*"/>
+                        <DataGridTextColumn Header="МКОП" Binding="{Binding Command}" Width="*"/>
+                        <DataGridTextColumn Header="Операнд 1" Binding="{Binding Operand1}" Width="*"/>
+                        <DataGridTextColumn Header="Операнд 2" Binding="{Binding Operand2}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,4,0,10" Spacing="6">
+                    <Button Content="+ строка" Click="AddSourceRow_Click"/>
+                    <Button Content="− строка" Click="RemoveSourceRow_Click"/>
+                </StackPanel>
+
+                <TextBlock Grid.Row="3" Text="Таблица кодов операций" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"/>
+
+                <Grid Grid.Row="4" RowDefinitions="*,Auto">
+                    <DataGrid Grid.Row="0" Name="OperCodeGrid" ItemsSource="{Binding OperCodeRows}"
+                              AutoGenerateColumns="False" CanUserSortColumns="False" GridLinesVisibility="All"
+                              HeadersVisibility="Column" BorderThickness="1" BorderBrush="Gray">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Команда" Binding="{Binding Command}" Width="*"/>
+                            <DataGridTextColumn Header="МКОП (hex)" Binding="{Binding Code}" Width="*"/>
+                            <DataGridTextColumn Header="Длина" Binding="{Binding Length}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,4,0,0" Spacing="6">
+                        <Button Content="+ строка" Click="AddOperCodeRow_Click"/>
+                        <Button Content="− строка" Click="RemoveOperCodeRow_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- ===================== Колонка 2: результаты первого прохода ===================== -->
+            <Grid Grid.Column="1" Margin="0,0,8,0" RowDefinitions="Auto,1.3*,Auto,1*,Auto,Auto,100">
+                <TextBlock Grid.Row="0" Text="Вспомогательная таблица" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"/>
+
+                <DataGrid Grid.Row="1" Name="SupportGrid" ItemsSource="{Binding SupportRows}"
+                          AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="False"
+                          GridLinesVisibility="All" HeadersVisibility="Column" BorderThickness="1" BorderBrush="Gray">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Адрес" Binding="{Binding Address}" Width="*"/>
+                        <DataGridTextColumn Header="МКОП" Binding="{Binding Command}" Width="*"/>
+                        <DataGridTextColumn Header="Операнд 1" Binding="{Binding Operand1}" Width="*"/>
+                        <DataGridTextColumn Header="Операнд 2" Binding="{Binding Operand2}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock Grid.Row="2" Text="Таблица символических имён" FontSize="15" FontWeight="SemiBold" Margin="0,10,0,4"/>
+
+                <DataGrid Grid.Row="3" Name="SymbolGrid" ItemsSource="{Binding SymbolRows}"
+                          AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="False"
+                          GridLinesVisibility="All" HeadersVisibility="Column" BorderThickness="1" BorderBrush="Gray">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Метка" Binding="{Binding Label}" Width="*"/>
+                        <DataGridTextColumn Header="Адрес" Binding="{Binding Address}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <TextBlock Grid.Row="4" Text="Ошибки первого прохода" FontSize="15" FontWeight="SemiBold" Margin="0,10,0,4"/>
+                <TextBox Grid.Row="6" Name="ErrorOnePassBox" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="False"/>
+            </Grid>
+
+            <!-- ===================== Колонка 3: результаты второго прохода ===================== -->
+            <Grid Grid.Column="2" RowDefinitions="Auto,*,Auto,100">
+                <TextBlock Grid.Row="0" Text="Двоичный код" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <ListBox Grid.Row="1" Name="BinaryCodeList" BorderThickness="1" BorderBrush="Gray" FontFamily="Menlo,Consolas,monospace"/>
+
+                <TextBlock Grid.Row="2" Text="Ошибки второго прохода" FontSize="15" FontWeight="SemiBold" Margin="0,10,0,4"/>
+                <TextBox Grid.Row="3" Name="ErrorTwoPassBox" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True" Background="#F3F3F3"/>
+            </Grid>
+        </Grid>
+
+        <!-- ===================== Кнопки управления ===================== -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="20" Margin="0,12,0,0">
+            <Button Name="Button1" Content="Первый проход" Padding="20,10" Click="Button1_Click"/>
+            <Button Name="Button2" Content="Второй проход" Padding="20,10" IsEnabled="False" Click="Button2_Click"/>
+        </StackPanel>
+    </Grid>
+
+</Window>
