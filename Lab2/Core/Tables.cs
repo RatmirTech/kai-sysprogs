@@ -1,6 +1,6 @@
 namespace Core;
 
-public sealed record SupportRow(SourceLine Source, int Address, int Size, OpCode? OpCode, string Code, string? Label);
+public sealed record SupportRow(SourceLine Source, int Address, int Size, OpCode? OpCode, string Code, string? Label, bool Relative = false);
 
 public sealed record Symbol(string Name, int Address, int Line);
 
@@ -15,4 +15,4 @@ public sealed record FirstPassResult(
     AddressingMode Mode,
     IReadOnlyList<string> Errors);
 
-public sealed record SecondPassResult(IReadOnlyList<string> Records, IReadOnlyList<string> Errors);
+public sealed record SecondPassResult(IReadOnlyList<string> Records, IReadOnlyList<int> Relocations, IReadOnlyList<string> Errors);

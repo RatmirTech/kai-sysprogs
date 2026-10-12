@@ -116,15 +116,11 @@ public static class FirstPass
         if (line.Label is null)
             errors.Add(AsmException.AtSource(line.Number, "не задано имя программы перед START"));
 
-        if (line.Operands.Length == 0)
-            errors.Add(AsmException.AtSource(line.Number, "у START не задан адрес загрузки"));
-        else if (!Rules.TryAddress(line.Operands[0], out start))
-            errors.Add(Fail(line, 0, $"адрес загрузки «{line.Operands[0]}» должен быть 16-ричным числом не длиннее {Rules.AddressInputDigits} цифр, не больше {Rules.Address(Rules.MaxAddress)}"));
-        else if (start == 0)
-            errors.Add(Fail(line, 0, "адрес загрузки не может быть равен 0"));
+        if (line.Operands.Length > 0 && (!Rules.TryAddress(line.Operands[0], out start) || start != 0))
+            errors.Add(Fail(line, 0, "программа в перемещаемом формате ассемблируется с адреса 0: операнд START должен отсутствовать или быть равен 0"));
 
         if (line.Operands.Length > 1)
-            errors.Add(Fail(line, 1, "у START только один операнд - адрес загрузки"));
+            errors.Add(Fail(line, 1, "у START допускается не более одного операнда"));
 
         return (line.Label ?? "", start);
     }
@@ -143,7 +139,9 @@ public static class FirstPass
             return start;
         }
 
-        if (errors.Count == 0 && !rows.Any(r => r.OpCode is not null && r.Address == entry))
+        var entryExists = rows.Any(r => r.OpCode is not null && r.Address == entry);
+        var emptyProgramEntryIsValid = rows.Count == 0 && entry == start;
+        if (errors.Count == 0 && !entryExists && !emptyProgramEntryIsValid)
             errors.Add(AsmException.AtSource(line.Number, $"точка входа {Rules.Address(entry)} не совпадает с адресом ни одной команды"));
 
         return entry;
@@ -168,8 +166,8 @@ public static class FirstPass
     static SupportRow EncodeCommand(SourceLine line, OpCode op, int address, AddressingMode mode)
     {
         var operands = line.Operands;
-        var code = op.MachineCode(mode).ToString("X2");
-        SupportRow Row(string rest, string? label = null) => new(line, address, op.Length, op, code + rest, label);
+        SupportRow Row(string rest, string? label = null, bool relative = false) =>
+            new(line, address, op.Length, op, op.MachineCode(relative).ToString("X2") + rest, label, relative);
 
         switch (op.Length)
         {
@@ -193,11 +191,14 @@ public static class FirstPass
             default:
                 if (operands.Length != 1)
                     throw AsmException.AtSource(line.Number, $"у команды {op.Name} должен быть ровно один операнд - метка");
-                return Row("", ReadLabel(line, op, mode));
+                {
+                    var (label, relative) = ReadLabel(line, op, mode);
+                    return Row("", label, relative);
+                }
         }
     }
 
-    static string ReadLabel(SourceLine line, OpCode op, AddressingMode mode)
+    static (string Label, bool Relative) ReadLabel(SourceLine line, OpCode op, AddressingMode mode)
     {
         var operand = line.Operands[0];
         var relative = Rules.IsRelative(operand);
@@ -207,7 +208,7 @@ public static class FirstPass
         if (mode == AddressingMode.Relative && !relative)
             throw Fail(line, 0, $"операнд «{operand}» команды {op.Name}: прямая адресация недоступна в режиме «только относительная адресация», нужен вид [метка]");
 
-        return relative ? Rules.Unbracket(operand) : operand;
+        return (relative ? Rules.Unbracket(operand) : operand, relative);
     }
 
     static SupportRow EncodeDirective(SourceLine line, int address)

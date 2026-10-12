@@ -17,7 +17,7 @@ public static class Samples
         """;
 
     public const string Source = """
-        PROG START 00000100
+        PROG START 00000000
          JMP L1
         A1 RESB 10
         A2 RESW 20
@@ -30,11 +30,11 @@ public static class Samples
          ADD R1 R2
          SAVER1 B1
          INT 200
-         END 00000100
+         END 00000000
         """;
 
     const string RelativeSource = """
-        PROG START 00000100
+        PROG START 00000000
          JMP [L1]
         A1 RESB 10
         A2 RESW 20
@@ -47,33 +47,48 @@ public static class Samples
          ADD R1 R2
          SAVER1 [B1]
          INT 200
-         END 00000100
+         END 00000000
+        """;
+
+    const string MixedSource = """
+        PROG START 00000000
+         JMP L1
+        A1 RESB 10
+        B1 WORD 40
+        B2 BYTE 12
+        L1 LOADR1 B1
+         LOADR2 [B2]
+         ADD R1 R2
+         SAVER1 [B1]
+         CALL [L1]
+         JMP L1
+         END 00000000
         """;
 
     const string RelativeFormats = """
-        FORMATS START 00002000
+        FORMATS START 00000000
         BEGIN NOP
          SUB R3 R4
          INT 33
          CALL [PROC]
          JMP [BEGIN]
         PROC NOP
-         END 00002000
+         END 00000000
         """;
 
     const string RelativeErrors = """
-        PROG START 00000100
+        PROG START 00000000
         L1 LOADR1 [B1]
-         LOADR2 B1
          JMP [Nowhere]
          JMP [R1]
-         JMP []
+         JMP [ADD]
+         JMP [PROG]
         B1 WORD 1
-         END 00000100
+         END 00000000
         """;
 
     const string Exampl = """
-        Exampl START 00001000
+        Exampl START 00000000
         Loop LOADR1 One
          LOADR2 Two
          ADD R1 R2
@@ -87,18 +102,18 @@ public static class Samples
         """;
 
     const string Formats = """
-        FORMATS START 00002000
+        FORMATS START 00000000
         BEGIN NOP ; формат 1: только код
          SUB R3 R4 ; формат 2: два регистра
          INT 33 ; формат 2: число
          CALL PROC ; формат 3: адрес 2 байта
          JMP BEGIN ; формат 4: адрес 3 байта
         PROC NOP
-         END 00002000
+         END 00000000
         """;
 
     const string Data = """
-        DATA START 0000A000
+        DATA START 00000000
          JMP MAIN
         W1 WORD 16777215
         W2 WORD ?
@@ -110,11 +125,11 @@ public static class Samples
         ARR RESW 100
         MAIN LOADR1 W1
          SAVER1 W2
-         END 0000A000
+         END 00000000
         """;
 
     const string ManyFirstPassErrors = """
-        Exampl START 00001000
+        Exampl START 00000000
         Loop LOADR1 One
          LDD Two
          ADD R1 One
@@ -128,7 +143,7 @@ public static class Samples
         """;
 
     const string SpacingErrors =
-        "Exampl START 00001000\n" +
+        "Exampl START 00000000\n" +
         "Loop  LOADR1 One\n" +
         "  ADD R1 R2\n" +
         " JMP Loop \n" +
@@ -140,8 +155,13 @@ public static class Samples
         Loop NOP
         """;
 
+    const string EmptyProgram = """
+        PROG START
+         END
+        """;
+
     const string SecondPassErrors = """
-        Exampl START 00001000
+        Exampl START 00000000
         Loop LOADR1 Onw
          LOADR2 R1
          SAVER1 ADD
@@ -152,11 +172,11 @@ public static class Samples
         """;
 
     const string FarCall = """
-        FAR START 0000FFF0
+        FAR START 00000000
          CALL SUB1
-        BUF RESB 100
+        BUF RESB 70000
         SUB1 NOP
-         END 0000FFF0
+         END 00000000
         """;
 
     const string BadOpCodes = """
@@ -180,9 +200,11 @@ public static class Samples
         new("Ошибки 1-го прохода: несколько сразу", ManyFirstPassErrors, OpCodes),
         new("Ошибки 1-го прохода: пробелы и табуляция", SpacingErrors, OpCodes),
         new("Ошибки 1-го прохода: адрес загрузки, нет END", StartErrors, OpCodes),
+        new("Пустая программа (без ошибок)", EmptyProgram, OpCodes),
         new("Относительная адресация (без ошибок)", RelativeSource, OpCodes, AddressingMode.Relative),
         new("Относительная адресация: все 4 формата (без ошибок)", RelativeFormats, OpCodes, AddressingMode.Relative),
         new("Относительная адресация: ошибки 2-го прохода", RelativeErrors, OpCodes, AddressingMode.Relative),
+        new("Смешанная адресация: прямая и относительная (без ошибок)", MixedSource, OpCodes, AddressingMode.Mixed),
         new("Режим прямой адресации: операнд [метка] - ошибка", RelativeSource, OpCodes),
         new("Режим относительной адресации: операнд-метка - ошибка", Source, OpCodes, AddressingMode.Relative),
         new("Ошибки ТКО", Exampl, BadOpCodes),

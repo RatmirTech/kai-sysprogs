@@ -13,7 +13,9 @@ public static class Printer
         Table(program.Symbols.Select(s => new[] { s.Name, Rules.Address(s.Address) }));
 
     public static string Header(FirstPassResult program) =>
-        Table([[program.Name, Rules.Address(program.Length), Rules.Address(program.Start)]]);
+        Table([[program.Name, Rules.Address(program.Start), Rules.Address(program.Length)]]);
+
+    public static string Relocations(IEnumerable<int> addresses) => Lines(addresses.Select(Rules.Address));
 
     public static string Lines(IEnumerable<string> lines) => string.Join(Environment.NewLine, lines);
 

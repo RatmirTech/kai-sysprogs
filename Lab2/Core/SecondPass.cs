@@ -6,7 +6,8 @@ public static class SecondPass
     {
         var symbols = program.Symbols.ToDictionary(s => s.Name);
         var errors = new List<AsmException>();
-        var records = new List<string> { $"H {program.Name} {Rules.Address(program.Length)} {Rules.Address(program.Start)}" };
+        var relocations = new List<int>();
+        var records = new List<string> { $"H {program.Name} {Rules.Address(program.Start)} {Rules.Address(program.Length)}" };
 
         foreach (var row in program.Rows)
         {
@@ -16,6 +17,8 @@ public static class SecondPass
                 try
                 {
                     code += Resolve(row, op, label, symbols, program);
+                    if (!row.Relative)
+                        relocations.Add(row.Address);
                 }
                 catch (AsmException e)
                 {
@@ -28,8 +31,11 @@ public static class SecondPass
             records.Add(code.Length == 0 ? $"T {address} {row.Size:X2}" : $"T {address} {row.Size:X2} {code}");
         }
 
+        records.AddRange(relocations.Select(a => $"M {Rules.Address(a)}"));
         records.Add($"E {Rules.Address(program.Entry)}");
-        return errors.Count > 0 ? new SecondPassResult([], AsmException.Sorted(errors)) : new SecondPassResult(records, []);
+        return errors.Count > 0
+            ? new SecondPassResult([], [], AsmException.Sorted(errors))
+            : new SecondPassResult(records, relocations, []);
     }
 
     static string Resolve(SupportRow row, OpCode op, string label, Dictionary<string, Symbol> symbols, FirstPassResult program)
@@ -38,7 +44,7 @@ public static class SecondPass
         if (!symbols.TryGetValue(label, out var symbol))
             throw AsmException.AtSource(row.Source.Number, position, NotLabel(label, op, program));
 
-        if (program.Mode == AddressingMode.Relative)
+        if (row.Relative)
             return Offset(row, op, label, symbol, position);
 
         if (symbol.Address > (1 << (op.AddressDigits * 4)) - 1)

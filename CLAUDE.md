@@ -19,3 +19,4 @@ Not on PATH? A plugin-only install keeps its own copy — same commands, run
 Still use Grep for literal strings/regex in non-code files; still Read files you'll edit.
 Full command + MCP-tool table: `.claude/plugin_code_graph_mcp.md`
 <!-- code-graph-mcp:end -->
+

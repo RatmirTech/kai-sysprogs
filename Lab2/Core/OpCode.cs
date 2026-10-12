@@ -6,6 +6,6 @@ public sealed record OpCode(string Name, int Code, int Length)
 
     public int AddressDigits => Length == 3 ? 4 : 6;
 
-    public int MachineCode(AddressingMode mode) =>
-        Code << 2 | (!HasAddress ? 0 : mode == AddressingMode.Direct ? 1 : 2);
+    public int MachineCode(bool relative) =>
+        Code << 2 | (!HasAddress ? 0 : relative ? 2 : 1);
 }
