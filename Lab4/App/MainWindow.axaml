@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="App.MainWindow"
+        Title="Однопросмотровый ассемблер в абсолютном формате (трассировка)"
+        Width="1400" Height="850"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Styles>
+        <Style Selector="TextBox">
+            <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+        </Style>
+        <Style Selector="TextBox.error">
+            <Setter Property="Foreground" Value="Firebrick" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="Margin" Value="0 8 0 4" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.caret">
+            <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="SteelBlue" />
+        </Style>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="Margin" Value="0 2" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*,*" Margin="10">
+
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,2*,Auto,Auto,*,Auto" Margin="0 0 10 0">
+            <DockPanel Grid.Row="0">
+                <TextBlock DockPanel.Dock="Right" Name="SourceCaret" Classes="caret" />
+                <TextBlock Text="Исходный текст" />
+            </DockPanel>
+            <TextBlock Grid.Row="1" Name="SourceHint" Classes="hint" />
+            <TextBox Grid.Row="2" Name="SourceBox" />
+            <DockPanel Grid.Row="3">
+                <TextBlock DockPanel.Dock="Right" Name="OpCodesCaret" Classes="caret" />
+                <TextBlock Text="Таблица кодов операций" />
+            </DockPanel>
+            <TextBlock Grid.Row="4" Name="OpCodesHint" Classes="hint" />
+            <TextBox Grid.Row="5" Name="OpCodesBox" />
+            <DockPanel Grid.Row="6" Margin="0 8 0 0">
+                <TextBlock DockPanel.Dock="Left" Text="Адрес загрузки" VerticalAlignment="Center" Margin="0 0 10 0" />
+                <TextBox Name="AddressBox" AcceptsReturn="False" />
+            </DockPanel>
+        </Grid>
+
+        <Grid Grid.Column="1" RowDefinitions="Auto,Auto,Auto,Auto,Auto,2*,Auto,*" Margin="0 0 10 0">
+            <TextBlock Grid.Row="0" Text="Ход ассемблирования" />
+            <TextBlock Grid.Row="1" Name="ProgressText" Classes="hint" />
+            <TextBlock Grid.Row="2" Text="Последний шаг" />
+            <TextBlock Grid.Row="3" Name="LastStepText" Classes="hint" />
+            <TextBlock Grid.Row="4" Text="ТСИ (имя, адрес, адреса команд, ждущих метку)" />
+            <TextBox Grid.Row="5" Name="SymbolsBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="6" Text="Ошибки" />
+            <TextBox Grid.Row="7" Name="ErrorsBox" Classes="error" IsReadOnly="True" />
+        </Grid>
+
+        <Grid Grid.Column="2" RowDefinitions="Auto,*">
+            <TextBlock Grid.Row="0" Text="Объектный модуль (FFFFFF - адрес метки ещё не известен)" />
+            <TextBox Grid.Row="1" Name="ObjectBox" IsReadOnly="True" />
+        </Grid>
+
+        <DockPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0 10 0 0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="Пример" VerticalAlignment="Center" Margin="0" />
+                <ComboBox Name="ExamplesBox" Width="460" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Name="StepButton" Content="Шаг" Click="OnStep" />
+                <Button Name="RunButton" Content="Полный проход" Click="OnRun" />
+                <Button Name="ResetButton" Content="Сброс" Click="OnReset" />
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>
