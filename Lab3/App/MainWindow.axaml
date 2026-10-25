@@ -1,0 +1,88 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="App.MainWindow"
+        Title="Двухпросмотровый ассемблер: программа с управляющими секциями"
+        Width="1400" Height="850"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Styles>
+        <Style Selector="TextBox">
+            <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+        </Style>
+        <Style Selector="TextBox.error">
+            <Setter Property="Foreground" Value="Firebrick" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="Margin" Value="0 8 0 4" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.caret">
+            <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="SteelBlue" />
+        </Style>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="Margin" Value="0 2" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,*,*" Margin="10">
+
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,2*,Auto,Auto,*" Margin="0 0 10 0">
+            <DockPanel Grid.Row="0">
+                <TextBlock DockPanel.Dock="Right" Name="SourceCaret" Classes="caret" />
+                <TextBlock Text="Исходный текст" />
+            </DockPanel>
+            <TextBlock Grid.Row="1" Name="SourceHint" Classes="hint" />
+            <TextBox Grid.Row="2" Name="SourceBox" />
+            <DockPanel Grid.Row="3">
+                <TextBlock DockPanel.Dock="Right" Name="OpCodesCaret" Classes="caret" />
+                <TextBlock Text="Таблица кодов операций" />
+            </DockPanel>
+            <TextBlock Grid.Row="4" Name="OpCodesHint" Classes="hint" />
+            <TextBox Grid.Row="5" Name="OpCodesBox" />
+        </Grid>
+
+        <Grid Grid.Column="1" RowDefinitions="Auto,2*,Auto,*,Auto,*,Auto,*" Margin="0 0 10 0">
+            <TextBlock Grid.Row="0" Text="Вспомогательная таблица" />
+            <TextBox Grid.Row="1" Name="SupportBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="2" Text="ТСИ (секция, метка, адрес)" />
+            <TextBox Grid.Row="3" Name="SymbolsBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="4" Text="Внешние имена (EXTDEF) и ссылки (EXTREF)" />
+            <TextBox Grid.Row="5" Name="ExternalsBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="6" Text="Ошибки первого прохода" />
+            <TextBox Grid.Row="7" Name="FirstErrorsBox" Classes="error" IsReadOnly="True" />
+        </Grid>
+
+        <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto,3*,Auto,*,Auto,*">
+            <TextBlock Grid.Row="0" Text="Заголовки секций (имя, адрес загрузки, длина)" />
+            <TextBox Grid.Row="1" Name="HeaderBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="2" Text="Объектные модули секций (H, D, R, T, M, E)" />
+            <TextBox Grid.Row="3" Name="ObjectBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="4" Text="Таблица настройки (секция, адрес, внешняя ссылка)" />
+            <TextBox Grid.Row="5" Name="RelocationsBox" IsReadOnly="True" />
+            <TextBlock Grid.Row="6" Text="Ошибки второго прохода" />
+            <TextBox Grid.Row="7" Name="SecondErrorsBox" Classes="error" IsReadOnly="True" />
+        </Grid>
+
+        <DockPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0 10 0 0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="Пример" VerticalAlignment="Center" Margin="0" />
+                <ComboBox Name="ExamplesBox" Width="460" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Name="FirstPassButton" Content="Первый проход" Click="OnFirstPass" />
+                <Button Name="SecondPassButton" Content="Второй проход" Click="OnSecondPass" IsEnabled="False" />
+                <TextBlock Text="Адресация" VerticalAlignment="Center" Margin="10 0 0 0" />
+                <ComboBox Name="ModeBox" Width="300" />
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>
