@@ -166,7 +166,9 @@ public sealed class OnePassAssembler
             throw AsmException.AtSource(line.Number, "к директиве END остались неопределёнными метки: " +
                 string.Join("; ", undefined.Select(s => $"{s.Name} (строки {string.Join(", ", s.Pending.Select(p => p.Line))})")));
 
-        if (!commandAddresses.Contains(entry))
+        // Пустая программа (START и сразу END) корректна, если точка входа - адрес загрузки
+        var emptyProgramEntryIsValid = address == start && entry == start;
+        if (!commandAddresses.Contains(entry) && !emptyProgramEntryIsValid)
             throw AsmException.AtSource(line.Number, $"точка входа {Rules.Address(entry)} не совпадает с адресом ни одной команды");
 
         for (var i = line.Number; i < lines.Length; i++)

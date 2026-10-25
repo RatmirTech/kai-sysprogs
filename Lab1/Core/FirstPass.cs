@@ -143,7 +143,9 @@ public static class FirstPass
             return start;
         }
 
-        if (errors.Count == 0 && !rows.Any(r => r.OpCode is not null && r.Address == entry))
+        // Пустая программа (START и сразу END) корректна, если точка входа - адрес загрузки
+        var emptyProgramEntryIsValid = rows.Count == 0 && entry == start;
+        if (errors.Count == 0 && !emptyProgramEntryIsValid && !rows.Any(r => r.OpCode is not null && r.Address == entry))
             errors.Add(AsmException.AtSource(line.Number, $"точка входа {Rules.Address(entry)} не совпадает с адресом ни одной команды"));
 
         return entry;
