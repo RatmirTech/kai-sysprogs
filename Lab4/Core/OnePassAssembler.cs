@@ -27,7 +27,6 @@ public sealed class OnePassAssembler
     readonly OpCodeTable opCodes;
     readonly OrderedDictionary<string, Symbol> symbols = new();
     readonly List<string> records = [];
-    readonly HashSet<int> commandAddresses = [];
     int next;
     int start;
     int address;
@@ -166,10 +165,10 @@ public sealed class OnePassAssembler
             throw AsmException.AtSource(line.Number, "к директиве END остались неопределёнными метки: " +
                 string.Join("; ", undefined.Select(s => $"{s.Name} (строки {string.Join(", ", s.Pending.Select(p => p.Line))})")));
 
-        // Пустая программа (START и сразу END) корректна, если точка входа - адрес загрузки
-        var emptyProgramEntryIsValid = address == start && entry == start;
-        if (!commandAddresses.Contains(entry) && !emptyProgramEntryIsValid)
-            throw AsmException.AtSource(line.Number, $"точка входа {Rules.Address(entry)} не совпадает с адресом ни одной команды");
+        // Как в эталоне: точка входа должна лежать в пределах программы (пустая программа - только адрес загрузки)
+        var inside = entry >= start && entry < address || entry == start && address == start;
+        if (!inside)
+            throw Fail(line, 0, $"точка входа {Rules.Address(entry)} должна лежать в пределах программы ({(address > start ? $"{Rules.Address(start)}-{Rules.Address(address - 1)}" : Rules.Address(start))})");
 
         for (var i = line.Number; i < lines.Length; i++)
             if (TextLine.WithoutComment(lines[i]).Length > 0)
@@ -230,19 +229,19 @@ public sealed class OnePassAssembler
             case 1:
                 if (operands.Length > 0)
                     throw Fail(line, 0, $"у команды {op.Name} не должно быть операндов");
-                return Emit(line, op.Length, code, true);
+                return Emit(line, op.Length, code);
 
             case 2:
                 if (operands.Length == 0)
                     throw AsmException.AtSource(line.Number, $"у команды {op.Name} нет операндов: нужно число 0..{Rules.MaxByte} или два регистра");
                 if (operands.Length == 1)
                     return Rules.TryNumber(operands[0], Rules.MaxByte, out var value)
-                        ? Emit(line, op.Length, code + value.ToString("X2"), true)
+                        ? Emit(line, op.Length, code + value.ToString("X2"))
                         : throw Fail(line, 0, $"операнд «{operands[0]}» команды {op.Name} должен быть числом 0..{Rules.MaxByte} (или укажите два регистра)");
                 for (var i = 0; i < 2; i++)
                     if (!Rules.IsRegister(operands[i]))
                         throw Fail(line, i, $"операнд «{operands[i]}» команды {op.Name} должен быть регистром R0..R15");
-                return Emit(line, op.Length, code + $"{Rules.RegisterNumber(operands[0]):X}{Rules.RegisterNumber(operands[1]):X}", true);
+                return Emit(line, op.Length, code + $"{Rules.RegisterNumber(operands[0]):X}{Rules.RegisterNumber(operands[1]):X}");
 
             default:
                 if (operands.Length != 1)
@@ -261,7 +260,7 @@ public sealed class OnePassAssembler
         if (symbols.TryGetValue(label, out var symbol) && symbol.Address is { } known)
         {
             CheckFits(known, op, label, line.Number, position);
-            return Emit(line, op.Length, code + known.ToString($"X{op.AddressDigits}"), true) + $", метка {label} уже известна";
+            return Emit(line, op.Length, code + known.ToString($"X{op.AddressDigits}")) + $", метка {label} уже известна";
         }
 
         if (symbol is null)
@@ -271,7 +270,7 @@ public sealed class OnePassAssembler
         }
 
         var commandAddress = address;
-        var action = Emit(line, op.Length, code + new string(Unresolved, op.AddressDigits), true);
+        var action = Emit(line, op.Length, code + new string(Unresolved, op.AddressDigits));
         symbol.Pending.Add(new PendingReference(commandAddress, records.Count - 1, line.Number, position, op));
         return action + $", ссылка вперёд на {label}: адрес записан в ТСИ";
     }
@@ -307,18 +306,16 @@ public sealed class OnePassAssembler
             _ => (Reserve(line, operand, Rules.WordSize), ""),
         };
 
-        return Emit(line, size, code, false);
+        return Emit(line, size, code);
     }
 
-    string Emit(SourceLine line, int size, string code, bool command)
+    string Emit(SourceLine line, int size, string code)
     {
         if (address + size > Rules.MaxAddress + 1)
             throw AsmException.AtSource(line.Number, $"программа выходит за границу памяти {Rules.Address(Rules.MaxAddress)}");
 
         var at = Rules.Address(address);
         records.Add(code.Length == 0 ? $"T {at} {size:X2}" : $"T {at} {size:X2} {code}");
-        if (command)
-            commandAddresses.Add(address);
         address += size;
         return $"{line.Command}: записано {size} байт по адресу {at}";
     }

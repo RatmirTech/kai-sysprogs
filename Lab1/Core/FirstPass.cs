@@ -90,7 +90,7 @@ public static class FirstPass
         else if (end is null && !overflow)
             errors.Add(new AsmException("Не найдена директива END"));
 
-        var entry = end is null ? start : ReadEnd(end, start, rows, errors);
+        var entry = end is null ? start : ReadEnd(end, start, address, errors);
         return new FirstPassResult(name, start, address - start, entry, rows, [.. symbols.Values], opCodes, AsmException.Sorted(errors));
     }
 
@@ -129,7 +129,7 @@ public static class FirstPass
         return (line.Label ?? "", start);
     }
 
-    static int ReadEnd(SourceLine line, int start, List<SupportRow> rows, List<AsmException> errors)
+    static int ReadEnd(SourceLine line, int start, int end, List<AsmException> errors)
     {
         if (line.Label is not null)
             errors.Add(AsmException.AtSource(line.Number, 1, "у директивы END не может быть метки"));
@@ -143,13 +143,16 @@ public static class FirstPass
             return start;
         }
 
-        // Пустая программа (START и сразу END) корректна, если точка входа - адрес загрузки
-        var emptyProgramEntryIsValid = rows.Count == 0 && entry == start;
-        if (errors.Count == 0 && !emptyProgramEntryIsValid && !rows.Any(r => r.OpCode is not null && r.Address == entry))
-            errors.Add(AsmException.AtSource(line.Number, $"точка входа {Rules.Address(entry)} не совпадает с адресом ни одной команды"));
+        // Как в эталоне: точка входа должна лежать в пределах программы (пустая программа - только адрес загрузки)
+        var inside = entry >= start && entry < end || entry == start && end == start;
+        if (errors.Count == 0 && !inside)
+            errors.Add(Fail(line, 0, $"точка входа {Rules.Address(entry)} должна лежать в пределах программы ({Range(start, end)})"));
 
         return entry;
     }
+
+    static string Range(int start, int end) =>
+        end > start ? $"{Rules.Address(start)}-{Rules.Address(end - 1)}" : Rules.Address(start);
 
     static void AddSymbol(OrderedDictionary<string, Symbol> symbols, string programName, string label, int address, int line)
     {

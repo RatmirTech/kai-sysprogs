@@ -220,10 +220,11 @@ public static class FirstPass
             return 0;
         }
 
-        var entryExists = section.Rows.Any(r => r.OpCode is not null && r.Address == entry);
-        var emptySectionEntryIsValid = section.Rows.Count == 0 && entry == 0;
-        if (errors.Count == 0 && !entryExists && !emptySectionEntryIsValid)
-            errors.Add(Fail(line, 0, $"точка входа {Rules.Address(entry)} не совпадает с адресом ни одной команды секции {section.Name}"));
+        // Как в эталоне: точка входа должна лежать в пределах секции (пустая секция - только адрес 0)
+        var end = section.Address;
+        var inside = entry >= 0 && entry < end || entry == 0 && end == 0;
+        if (errors.Count == 0 && !inside)
+            errors.Add(Fail(line, 0, $"точка входа {Rules.Address(entry)} должна лежать в пределах секции {section.Name} ({(end > 0 ? $"{Rules.Address(0)}-{Rules.Address(end - 1)}" : Rules.Address(0))})"));
 
         return entry;
     }
