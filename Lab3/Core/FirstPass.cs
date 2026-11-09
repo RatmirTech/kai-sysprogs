@@ -23,7 +23,6 @@ public static class FirstPass
             return new FirstPassResult([], opCodes, mode, AsmException.Sorted(errors));
 
         var sections = new List<Section>();
-        var exported = new Dictionary<string, string>();
         SectionState? section = null;
         var started = false;
         var overflow = false;
@@ -90,7 +89,7 @@ public static class FirstPass
                     continue;
 
                 case "EXTDEF" or "EXTREF":
-                    ReadExternal(section, line, exported, opCodes, errors);
+                    ReadExternal(section, line, opCodes, errors);
                     continue;
             }
 
@@ -230,7 +229,7 @@ public static class FirstPass
     }
 
     /// <summary>EXTDEF/EXTREF стоят сразу после START или CSECT, до первой команды секции.</summary>
-    static void ReadExternal(SectionState section, SourceLine line, Dictionary<string, string> exported, OpCodeTable opCodes, List<AsmException> errors)
+    static void ReadExternal(SectionState section, SourceLine line, OpCodeTable opCodes, List<AsmException> errors)
     {
         var directive = line.Command;
         if (line.Label is not null)
@@ -263,13 +262,8 @@ public static class FirstPass
                 errors.Add(Error($"имя {name} уже объявлено в EXTREF (строка {refLine})"));
             else if (directive == "EXTREF")
                 section.ExtRefs.Add(name, line.Number);
-            else if (exported.TryGetValue(name, out var owner))
-                errors.Add(Error($"внешнее имя {name} уже экспортирует секция {owner}"));
             else
-            {
-                exported.Add(name, section.Name);
                 section.ExtDefs.Add(name, line.Number);
-            }
         }
     }
 
