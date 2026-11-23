@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="App.MainWindow"
-        Title="Однопросмотровый ассемблер: программа с управляющими секциями (трассировка)"
+        Title="реализация однопросмотрового ассемблера для программы в полноперемещаемом формате"
         Width="1450" Height="880"
         WindowStartupLocation="CenterScreen">
 
